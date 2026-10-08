@@ -23,6 +23,12 @@ try {
       userId: userId,
       ts: new Date().toISOString(),
     }));
+
+    // CRITICO: continuar la cadena del hook. Sin esta llamada PocketBase
+    // responde 200 con cuerpo vacio (Content-Length: 0), el SDK guarda un
+    // authStore vacio y el middleware interpreta que la sesion murio: el
+    // usuario queda deslogueado en vez de recibir su token rotado.
+    e.next();
   });
 } catch (err) {
   // Si la API del hook cambia entre versiones de PB, no queremos romper

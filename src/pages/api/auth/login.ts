@@ -16,9 +16,10 @@
 
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { setAuthCookie } from '../../../lib/auth/cookie';
+import { setAuthCookie, setPendingTwoFactorCookie } from '../../../lib/auth/cookie';
 import { validateCsrf } from '../../../lib/auth/csrf';
 import { logAuthEvent } from '../../../lib/auth/logger';
+import { readUserSecurity } from '../../../lib/auth/twofactor';
 
 export const prerender = false;
 
@@ -66,6 +67,43 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
     const authData = await pb
       .collection('users')
       .authWithPassword(parsed.data.email, parsed.data.password);
+
+    // 5. Segundo factor: si la cuenta tiene TOTP activo NO se emite la sesión
+    //    todavía. El token de PB queda en la cookie de desafío `pb_2fa`
+    //    (HttpOnly, 5 min) y el cliente debe canjearlo en
+    //    /api/auth/2fa/verify con un código de 6 dígitos o un código de
+    //    recuperación.
+    //
+    //    El estado 2FA vive en campos `hidden`, así que solo el cliente de
+    //    superusuario puede leerlo. Si ese cliente no está disponible
+    //    (POCKETBASE_ADMIN_EMAIL / POCKETBASE_ADMIN_PASSWORD sin configurar)
+    //    fallamos CERRADO: nunca emitimos una sesión sin poder comprobar si
+    //    el segundo factor es obligatorio.
+    let twoFactorEnabled = false;
+    try {
+      const security = await readUserSecurity(authData.record.id);
+      twoFactorEnabled = security.enabled && security.secret !== '';
+    } catch {
+      logAuthEvent('auth.login_2fa_check_unavailable', {
+        userId: authData.record.id,
+        ip: clientIp(request),
+      });
+      return jsonError('auth_backend_unavailable', 503);
+    }
+
+    if (twoFactorEnabled) {
+      setPendingTwoFactorCookie(cookies, authData.token);
+
+      logAuthEvent('auth.login_2fa_challenge_issued', {
+        userId: authData.record.id,
+        ip: clientIp(request),
+      });
+
+      return new Response(JSON.stringify({ twoFactorRequired: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     setAuthCookie(cookies, authData.token, authData.record);
 

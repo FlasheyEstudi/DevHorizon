@@ -20,11 +20,23 @@ export interface AuthUser {
   updated?: string;
 }
 
+/**
+ * Resultado del paso 1 del login.
+ * Cuando la cuenta tiene 2FA activo el servidor NO emite sesión: devuelve
+ * `twoFactorRequired: true` y hay que llamar a `verifyTwoFactor(code)`.
+ */
+export type LoginResult =
+  | { twoFactorRequired: true }
+  | { twoFactorRequired: false; user: AuthUser };
+
 export const authUser = atom<AuthUser | null>(null);
 export const authLoading = atom<boolean>(false);
 
 /** Hace login via API y guarda el user en el store. */
-export async function login(email: string, password: string): Promise<AuthUser> {
+export async function login(
+  email: string,
+  password: string
+): Promise<LoginResult> {
   authLoading.set(true);
   try {
     const res = await fetch('/api/auth/login', {
@@ -39,6 +51,43 @@ export async function login(email: string, password: string): Promise<AuthUser> 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: 'Error al autenticar' }));
       throw new Error(err.error || 'Error al autenticar');
+    }
+    const data = await res.json();
+    if (data.twoFactorRequired) {
+      return { twoFactorRequired: true };
+    }
+    authUser.set(data.user);
+    return { twoFactorRequired: false, user: data.user };
+  } finally {
+    authLoading.set(false);
+  }
+}
+
+/**
+ * Paso 2 del login: canjea el desafío 2FA (cookie HttpOnly `pb_2fa`) por la
+ * sesión real usando un código TOTP de 6 dígitos o un código de recuperación.
+ */
+export async function verifyTwoFactor(code: string): Promise<AuthUser> {
+  authLoading.set(true);
+  try {
+    const res = await fetch('/api/auth/2fa/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: window.location.origin,
+        ...csrfHeaders(),
+      },
+      body: JSON.stringify({ code }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'invalid_code' }));
+      const error = new Error(err.error || 'invalid_code') as Error & {
+        attemptsRemaining?: number;
+      };
+      if (typeof err.attemptsRemaining === 'number') {
+        error.attemptsRemaining = err.attemptsRemaining;
+      }
+      throw error;
     }
     const data = await res.json();
     authUser.set(data.user);

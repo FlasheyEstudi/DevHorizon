@@ -19,6 +19,7 @@ import Overview from './sections/Overview';
 import StoreSection from './sections/StoreSection';
 import ProductsSection from './sections/ProductsSection';
 import DashboardSection from './sections/DashboardSection';
+import SecuritySection from './sections/SecuritySection';
 import OrdersSection from './sections/OrdersSection';
 import AccountSection from './sections/AccountSection';
 import { Skeleton } from '../ui/skeleton';
@@ -130,6 +131,9 @@ export default function ProfileApp({ lang, labels }: Props) {
         )}
         {activeTab === 'account' && (
           <AccountSection lang={lang} />
+        )}
+        {activeTab === 'security' && (
+          <SecuritySection lang={lang} />
         )}
       </main>
     </div>

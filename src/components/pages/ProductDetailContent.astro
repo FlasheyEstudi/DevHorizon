@@ -1,0 +1,518 @@
+---
+import { pb, pbFileUrl } from '../../lib/pocketbase';
+import { useTranslations, localizePath } from '../../i18n/utils';
+import type { Lang } from '../../i18n/ui';
+import type { RecordModel } from 'pocketbase';
+import { Icon } from 'astro-icon/components';
+import Reviews from '../reviews/Reviews';
+
+interface Props {
+  lang: Lang;
+  product: ProductRecord;
+  store: StoreRecord | null;
+  productOwnerId: string | null;
+}
+
+interface CategoryRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+}
+
+interface ProductRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  description?: string;
+  price?: number;
+  images?: string[];
+  store?: string;
+  categories?: string[];
+  rating_avg?: number;
+  created?: string;
+  expand?: {
+    categories?: CategoryRecord[];
+    store?: StoreRecord;
+  };
+}
+interface StoreRecord extends RecordModel {
+  name?: string; slug?: string; department?: string; address_text?: string;
+}
+
+const { lang, product, store, productOwnerId } = Astro.props;
+const t = useTranslations(lang);
+const l = (path: string) => localizePath(path, lang);
+
+function productImageUrl(p: ProductRecord, idx: number): string | null {
+  if (p.images && p.images[idx]) {
+    return pbFileUrl(p.collectionId, p.id, p.images[idx]);
+  }
+  return null;
+}
+
+// Sello de Autenticidad Artesanal - Código de Verificación Digital y Metadatos
+const deptCode = (store?.department || 'NIC')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .trim()
+  .slice(0, 3)
+  .toUpperCase();
+const prodCode = (product.id || '000000').slice(0, 6).toUpperCase();
+const verificationCode = `NIC-${deptCode}-${prodCode}`;
+const departmentName = store?.department || (lang === 'en' ? 'Nicaragua' : 'Nicaragua');
+const formattedDate = product.created
+  ? new Date(product.created).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-NI', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  : new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'es-NI', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+const categoriesList = product.expand?.categories || [];
+const primaryCategory = categoriesList[0];
+---
+
+<section class="py-8 md:py-12">
+  <div class="max-w-7xl mx-auto px-4">
+    <!-- Migas de pan con Categoría integrada -->
+    <nav aria-label="Migas de pan" class="mb-6 flex items-center gap-2 text-xs sm:text-sm text-texto-secundario overflow-x-auto no-scrollbar">
+      <a href={l('/')} class="hover:text-primary transition-colors whitespace-nowrap">{t('nav.home')}</a>
+      <span>/</span>
+      <a href={l('/productos')} class="hover:text-primary transition-colors whitespace-nowrap">{t('nav.products')}</a>
+      {primaryCategory && (
+        <>
+          <span>/</span>
+          <a href={l(`/productos?categoria=${primaryCategory.slug}`)} class="hover:text-primary transition-colors font-medium text-primary whitespace-nowrap">
+            {primaryCategory.name}
+          </a>
+        </>
+      )}
+      <span>/</span>
+      <span class="text-texto font-semibold truncate max-w-[200px]">{product.name}</span>
+    </nav>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+      <div class="space-y-2">
+        {product.images && product.images.length > 0 ? (
+          product.images.map((_, idx) => (
+            <img
+              src={productImageUrl(product, idx) ?? ''}
+              alt={`${product.name} ${idx + 1}`}
+              class="w-full aspect-square object-cover rounded-lg"
+              loading="lazy"
+            />
+          ))
+        ) : (
+          <div class="aspect-square bg-borde flex items-center justify-center text-texto-secundario text-6xl rounded-lg">
+            <Icon name="lucide:image" />
+          </div>
+        )}
+      </div>
+
+      <div>
+        <!-- Badges de Categoría -->
+        {categoriesList.length > 0 && (
+          <div class="flex flex-wrap items-center gap-1.5 mb-2.5">
+            {categoriesList.map((cat) => (
+              <a
+                href={l(`/productos?categoria=${cat.slug}`)}
+                class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+              >
+                <Icon name="lucide:tag" class="size-3" />
+                <span>{cat.name}</span>
+              </a>
+            ))}
+          </div>
+        )}
+
+        <h1 class="text-3xl font-bold text-texto mb-4">{product.name}</h1>
+        <p class="text-3xl font-bold text-primary mb-4">C$ {product.price?.toFixed(2) ?? '0.00'}</p>
+        {product.rating_avg !== undefined && product.rating_avg > 0 && (
+          <p class="text-rating flex items-center gap-1 mb-4">
+            <Icon name="lucide:star" /> <span>{product.rating_avg.toFixed(1)}</span>
+          </p>
+        )}
+        {store && (
+          <p class="text-texto-secundario mb-6">
+            {t('product.soldBy')}{' '}
+            <a href={l(`/tiendas/${store.slug}`)} class="text-primary hover:text-primary-dark font-medium">
+              {store.name}
+            </a>
+          </p>
+        )}
+        {product.description && (
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-texto mb-2">{t('product.description')}</h3>
+            <p class="text-texto-secundario leading-relaxed">{product.description}</p>
+          </div>
+        )}
+        <button class="add-to-cart w-full bg-primary text-white px-6 py-4 rounded-lg font-semibold text-lg hover:bg-primary-dark transition-colors cursor-pointer shadow-sm flex items-center justify-center" data-product-id={product.id}>
+          <Icon name="lucide:shopping-cart" class="mr-2 text-xl" /> {t('actions.addToCart')}
+        </button>
+
+        <!-- Sello de Autenticidad Artesanal Card -->
+        <div class="mt-6 p-5 rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/60 via-white to-orange-50/30 shadow-xs relative overflow-hidden">
+          <div class="flex items-start gap-3.5 mb-3.5">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-primary to-amber-500 text-white flex items-center justify-center shadow-sm shrink-0">
+              <Icon name="lucide:award" class="text-2xl" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="font-bold text-texto text-base leading-tight">
+                  {t('product.authenticity.title')}
+                </h3>
+                <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  {t('product.authenticity.statusVerified')}
+                </span>
+              </div>
+              <p class="text-xs text-texto-secundario mt-0.5">
+                {t('product.authenticity.subtitle')}
+              </p>
+            </div>
+          </div>
+
+          <!-- Quick facts / badges -->
+          <div class="grid grid-cols-2 gap-2 text-xs text-texto-secundario my-3">
+            <div class="flex items-center gap-1.5 bg-white/80 border border-amber-100 rounded-lg p-2">
+              <Icon name="lucide:map-pin" class="text-primary shrink-0 text-sm" />
+              <span class="truncate font-medium text-texto">
+                {departmentName}, Nicaragua
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-white/80 border border-amber-100 rounded-lg p-2">
+              <Icon name="lucide:sparkles" class="text-amber-600 shrink-0 text-sm" />
+              <span class="truncate font-medium text-texto">
+                {t('product.authenticity.badgeHandmade')}
+              </span>
+            </div>
+          </div>
+
+          <!-- Verification Code Box -->
+          <div class="bg-amber-100/40 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-2 mt-3">
+            <div class="min-w-0">
+              <span class="block text-[10px] uppercase font-bold tracking-wider text-amber-900/70">
+                {t('product.authenticity.code')}
+              </span>
+              <span class="font-mono text-sm font-bold text-primary tracking-wider" id="auth-code-text">
+                {verificationCode}
+              </span>
+            </div>
+            <button
+              type="button"
+              id="copy-auth-code-btn"
+              data-code={verificationCode}
+              class="inline-flex items-center gap-1 text-xs font-semibold text-amber-900 bg-white hover:bg-amber-50 border border-amber-300 px-2.5 py-1.5 rounded-lg shadow-xs transition-colors cursor-pointer shrink-0"
+              title={t('product.authenticity.copy')}
+            >
+              <Icon name="lucide:copy" class="text-xs text-amber-800" id="copy-auth-icon" />
+              <span id="copy-auth-label">{t('product.authenticity.copy')}</span>
+            </button>
+          </div>
+
+          <!-- View Certificate Modal Trigger -->
+          <div class="mt-3.5 pt-3 border-t border-amber-200/60 flex items-center justify-between">
+            <span class="text-xs text-texto-secundario flex items-center gap-1">
+              <Icon name="lucide:shield-check" class="text-primary text-sm" />
+              {t('product.authenticity.badgeDirect')}
+            </span>
+            <button
+              type="button"
+              id="open-cert-modal-btn"
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-dark transition-colors cursor-pointer group"
+            >
+              <span>{t('product.authenticity.viewCert')}</span>
+              <Icon name="lucide:external-link" class="text-xs group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Digital Certificate Modal -->
+<div
+  id="authenticity-cert-modal"
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-200"
+  aria-hidden="true"
+  role="dialog"
+  aria-modal="true"
+>
+  <div
+    class="relative w-full max-w-xl bg-[#FCFAF7] rounded-2xl shadow-2xl border-4 border-double border-amber-700/30 overflow-hidden transform scale-95 transition-transform duration-200 max-h-[90vh] flex flex-col"
+    id="cert-modal-content"
+  >
+    <!-- Certificate Ornamental Header Background -->
+    <div class="relative bg-gradient-to-r from-[#9A4227] via-[#B85536] to-[#285375] text-white p-6 pb-7 text-center">
+      <button
+        type="button"
+        id="close-cert-modal-btn"
+        class="absolute top-4 right-4 text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+        aria-label={t('product.authenticity.close')}
+      >
+        <Icon name="lucide:x" class="text-xl" />
+      </button>
+
+      <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-amber-400 text-stone-900 flex items-center justify-center shadow-lg border-2 border-white/60">
+        <Icon name="lucide:award" class="text-3xl text-[#9A4227]" />
+      </div>
+
+      <p class="text-[11px] font-bold tracking-widest uppercase text-amber-200">
+        ArtesaNica • Nicaragua
+      </p>
+      <h2 class="text-xl sm:text-2xl font-serif font-bold text-white mt-1">
+        {t('product.authenticity.modalTitle')}
+      </h2>
+      <p class="text-xs text-white/80 max-w-md mx-auto mt-1">
+        {t('product.authenticity.modalSubtitle')}
+      </p>
+    </div>
+
+    <!-- Scrollable Certificate Body -->
+    <div class="p-6 space-y-4 overflow-y-auto flex-1">
+      <!-- Status & Code Ribbon -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-xl bg-amber-50/80 border border-amber-200">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-700">
+            <Icon name="lucide:check" class="text-sm font-bold" />
+          </span>
+          <div>
+            <span class="text-[11px] uppercase tracking-wider text-texto-secundario block leading-none font-semibold">
+              {t('product.authenticity.status')}
+            </span>
+            <span class="text-sm font-bold text-emerald-700">
+              {t('product.authenticity.statusVerified')}
+            </span>
+          </div>
+        </div>
+
+        <div class="text-center sm:text-right">
+          <span class="text-[10px] uppercase tracking-wider text-amber-900/70 block leading-none font-bold">
+            {t('product.authenticity.code')}
+          </span>
+          <span class="font-mono text-base font-bold text-primary tracking-wider">
+            {verificationCode}
+          </span>
+        </div>
+      </div>
+
+      <!-- Details Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <div class="p-3 rounded-lg bg-white border border-stone-200/80">
+          <span class="text-xs text-texto-secundario block font-medium mb-0.5">
+            {t('product.authenticity.item')}
+          </span>
+          <p class="font-semibold text-texto line-clamp-1">{product.name}</p>
+        </div>
+
+        <div class="p-3 rounded-lg bg-white border border-stone-200/80">
+          <span class="text-xs text-texto-secundario block font-medium mb-0.5">
+            {t('product.authenticity.workshop')}
+          </span>
+          <p class="font-semibold text-primary line-clamp-1">
+            {store ? store.name : 'Taller Artesanal'}
+          </p>
+        </div>
+
+        <div class="p-3 rounded-lg bg-white border border-stone-200/80">
+          <span class="text-xs text-texto-secundario block font-medium mb-0.5">
+            {t('product.authenticity.department')}
+          </span>
+          <p class="font-semibold text-texto flex items-center gap-1">
+            <Icon name="lucide:map-pin" class="text-primary text-xs shrink-0" />
+            {departmentName}, Nicaragua
+          </p>
+        </div>
+
+        <div class="p-3 rounded-lg bg-white border border-stone-200/80">
+          <span class="text-xs text-texto-secundario block font-medium mb-0.5">
+            Fecha de Registro
+          </span>
+          <p class="font-semibold text-texto">{formattedDate}</p>
+        </div>
+      </div>
+
+      <!-- Guarantee Statement -->
+      <div class="p-4 rounded-xl bg-orange-50/50 border border-orange-200/60">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-[#9A4227] flex items-center gap-1.5 mb-1.5">
+          <Icon name="lucide:sparkles" class="text-amber-600" />
+          {t('product.authenticity.pledgeTitle')}
+        </h4>
+        <p class="text-xs text-texto-secundario leading-relaxed italic">
+          "{t('product.authenticity.pledge')}"
+        </p>
+      </div>
+
+      <!-- Trust Badges Row -->
+      <div class="flex flex-wrap items-center justify-center gap-2 pt-1 text-[11px] text-texto-secundario">
+        <span class="inline-flex items-center gap-1 bg-white border border-stone-200 px-2.5 py-1 rounded-full shadow-2xs">
+          ✓ {t('product.authenticity.badgeHandmade')}
+        </span>
+        <span class="inline-flex items-center gap-1 bg-white border border-stone-200 px-2.5 py-1 rounded-full shadow-2xs">
+          ✓ {t('product.authenticity.badgeHeritage')}
+        </span>
+        <span class="inline-flex items-center gap-1 bg-white border border-stone-200 px-2.5 py-1 rounded-full shadow-2xs">
+          ✓ {t('product.authenticity.badgeDirect')}
+        </span>
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="p-4 bg-stone-100/80 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <button
+        type="button"
+        id="share-cert-btn"
+        class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-texto hover:text-primary bg-white border border-stone-300 hover:border-primary/40 px-4 py-2 rounded-lg transition-colors cursor-pointer shadow-2xs"
+      >
+        <Icon name="lucide:share-2" class="text-sm" />
+        <span id="share-cert-text">{t('product.authenticity.share')}</span>
+      </button>
+
+      <button
+        type="button"
+        id="close-cert-footer-btn"
+        class="w-full sm:w-auto bg-primary text-white text-xs font-semibold px-5 py-2 rounded-lg hover:bg-primary-dark transition-colors cursor-pointer shadow-xs"
+      >
+        {t('product.authenticity.close')}
+      </button>
+    </div>
+  </div>
+</div>
+
+<section class="pb-12">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="border-t border-gray-200 pt-8">
+      <Reviews
+        client:load
+        productId={product.id}
+        lang={lang}
+        productOwnerId={productOwnerId}
+      />
+    </div>
+  </div>
+</section>
+
+<script>
+  import { addToCart } from '../../lib/stores/cart';
+
+  // Add to cart functionality
+  document.querySelectorAll('.add-to-cart').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const productId = (e.currentTarget as HTMLButtonElement).dataset.productId;
+      if (!productId) return;
+      addToCart(productId, 1, {
+        name: document.querySelector('h1')?.textContent ?? undefined,
+        price: Number((document.querySelector('.text-primary')?.textContent ?? '').replace(/[^0-9.]/g, '')) || undefined,
+      });
+      const original = (e.currentTarget as HTMLButtonElement).innerHTML;
+      const currentDocLang = document.documentElement.lang;
+      const addedLabel = currentDocLang === 'en' ? 'Added' : currentDocLang === 'miq' ? 'Diman' : 'Agregado';
+      (e.currentTarget as HTMLButtonElement).innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><polyline points="20 6 9 17 4 12"/></svg> ${addedLabel}`;
+      setTimeout(() => {
+        (e.currentTarget as HTMLButtonElement).innerHTML = original;
+      }, 1500);
+    });
+  });
+
+  // Authenticity Seal & Certificate Script
+  const copyBtn = document.getElementById('copy-auth-code-btn');
+  const copyLabel = document.getElementById('copy-auth-label');
+  const openModalBtn = document.getElementById('open-cert-modal-btn');
+  const closeModalBtn = document.getElementById('close-cert-modal-btn');
+  const closeFooterBtn = document.getElementById('close-cert-footer-btn');
+  const modal = document.getElementById('authenticity-cert-modal');
+  const modalContent = document.getElementById('cert-modal-content');
+  const shareBtn = document.getElementById('share-cert-btn');
+  const shareText = document.getElementById('share-cert-text');
+
+  const currentDocLang = document.documentElement.lang;
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      const code = copyBtn.getAttribute('data-code') || '';
+      if (!code) return;
+      try {
+        await navigator.clipboard.writeText(code);
+        if (copyLabel) {
+          copyLabel.textContent =
+            currentDocLang === 'en' ? 'Copied!' : currentDocLang === 'miq' ? 'Kopi munan!' : '¡Copiado!';
+        }
+        setTimeout(() => {
+          if (copyLabel) {
+            copyLabel.textContent =
+              currentDocLang === 'en' ? 'Copy code' : currentDocLang === 'miq' ? 'Kodi kopi munaia' : 'Copiar código';
+          }
+        }, 2000);
+      } catch {}
+    });
+  }
+
+  function openCertificateModal() {
+    if (!modal || !modalContent) return;
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    modal.classList.add('opacity-100', 'pointer-events-auto');
+    modalContent.classList.remove('scale-95');
+    modalContent.classList.add('scale-100');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeCertificateModal() {
+    if (!modal || !modalContent) return;
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    modal.classList.remove('opacity-100', 'pointer-events-auto');
+    modalContent.classList.add('scale-95');
+    modalContent.classList.remove('scale-100');
+    document.body.style.overflow = '';
+    if (window.location.hash === '#certificado') {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }
+
+  if (openModalBtn) {
+    openModalBtn.addEventListener('click', () => {
+      openCertificateModal();
+      window.location.hash = 'certificado';
+    });
+  }
+
+  if (closeModalBtn) closeModalBtn.addEventListener('click', closeCertificateModal);
+  if (closeFooterBtn) closeFooterBtn.addEventListener('click', closeCertificateModal);
+
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeCertificateModal();
+    });
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeCertificateModal();
+  });
+
+  if (shareBtn) {
+    shareBtn.addEventListener('click', async () => {
+      const shareUrl = new URL(window.location.href);
+      shareUrl.hash = 'certificado';
+      try {
+        await navigator.clipboard.writeText(shareUrl.toString());
+        if (shareText) {
+          shareText.textContent =
+            currentDocLang === 'en' ? 'Link copied!' : currentDocLang === 'miq' ? 'Link kopi munan!' : '¡Enlace copiado!';
+        }
+        setTimeout(() => {
+          if (shareText) {
+            shareText.textContent =
+              currentDocLang === 'en' ? 'Share Certificate' : currentDocLang === 'miq' ? 'Sertifiket tabaikaia' : 'Compartir Certificado';
+          }
+        }, 2000);
+      } catch {}
+    });
+  }
+
+  // Check URL hash or query for direct certificate link
+  if (window.location.hash === '#certificado' || window.location.search.includes('cert=1')) {
+    openCertificateModal();
+  }
+</script>

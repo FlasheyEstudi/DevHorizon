@@ -1,0 +1,55 @@
+---
+// =============================================================================
+// Footer.astro
+// =============================================================================
+// Pie de pagina con traducciones via prop `t`.
+// Migrado a Tailwind CSS v4 — fix del bug .footer-grid/.footer-col que
+// no existian en el CSS legacy (el footer renderizaba sin grid).
+// =============================================================================
+
+import { localizePath } from '../i18n/utils';
+import type { Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  /** Funcion de traduccion (acepta cualquier key string, retorna string). */
+  t: (key: string) => string;
+}
+
+const { lang, t } = Astro.props;
+const year = new Date().getFullYear();
+
+function l(path: string): string {
+  return localizePath(path, lang);
+}
+---
+
+<footer class="bg-footer-bg text-footer-text border-t border-footer-border mt-12">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div>
+        <div class="flex items-center gap-2.5 mb-3">
+          <img src="/Logo Blanco.png" alt="ArtesaNica Logo" class="h-8 w-auto object-contain" />
+          <h3 class="text-white text-xl font-extrabold tracking-tight">ArtesaNica</h3>
+        </div>
+        <p class="text-sm text-footer-text leading-relaxed max-w-sm">{t('footer.tagline')}</p>
+      </div>
+      <div>
+        <h4 class="text-white text-base font-semibold mb-3">{t('footer.navTitle')}</h4>
+        <ul class="space-y-2 text-sm">
+          <li><a href={l('/')} class="text-slate-300 hover:text-accent-amber transition-colors inline-block">{t('nav.home')}</a></li>
+          <li><a href={l('/productos')} class="text-slate-300 hover:text-accent-amber transition-colors inline-block">{t('nav.products')}</a></li>
+          <li><a href={l('/tiendas')} class="text-slate-300 hover:text-accent-amber transition-colors inline-block">{t('nav.stores')}</a></li>
+          <li><a href={l('/noticias')} class="text-slate-300 hover:text-accent-amber transition-colors inline-block">{t('nav.news')}</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="text-white text-base font-semibold mb-3">{t('footer.contactTitle')}</h4>
+        <p class="text-sm text-slate-300 leading-relaxed">{t('footer.address')}</p>
+      </div>
+    </div>
+    <div class="border-t border-footer-border mt-8 pt-6 text-center text-xs sm:text-sm text-footer-text">
+      <p>&copy; {year} ArtesaNica. {t('footer.copyright')}</p>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,319 @@
+---
+// =============================================================================
+// MapOverlayHeader.astro
+// =============================================================================
+// Header transparente overlay para rutas con layout fullbleed (actualmente
+// solo /mapa). Flota encima del mapa con `position: fixed`.
+//
+// Comportamiento:
+// - Estado inicial: transparente (deja ver el mapa debajo).
+// - Al hacer scroll > 40px: backdrop-blur + fondo blanco semitransparente
+//   + borde inferior sutil. Esto lo decide el `<script>` inline con rAF.
+//
+// Items: brand (logo + nombre), spacer, lang switcher, theme toggle,
+// auth menu (reutiliza HeaderAuthMenu del Header normal).
+// =============================================================================
+
+import { localizePath } from '../../i18n/utils';
+import type { Lang } from '../../i18n/ui';
+import { Icon } from 'astro-icon/components';
+import HeaderAuthMenu from './HeaderAuthMenu';
+import LanguageDropdown from './LanguageDropdown';
+
+interface Props {
+  lang: Lang;
+  /** Funcion de traduccion. */
+  t: (key: string) => string;
+}
+
+const { lang, t } = Astro.props;
+
+const l = (path: string): string => localizePath(path, lang);
+
+// Mismas labels que Header.astro — se mantienen sincronizadas.
+const authLabels = {
+  login: t('nav.login'),
+  profile: t('nav.menu.profile'),
+  cart: t('nav.menu.cart'),
+  logout: t('nav.menu.logout'),
+  greeting: t('nav.menu.greeting'),
+};
+
+const themeTooltip = t('nav.themeDark');
+---
+
+<!-- NO usamos `transition:persist` en el <header>: al cambiar idioma el
+     href del lang switcher debe reescribirse en SSR, y persist congelaría
+     el href viejo. En su lugar, el script es idempotente (data-bound flags)
+     y los listeners no se duplican tras cada navegación. -->
+<header
+  id="map-overlay-header"
+  data-scrolled="false"
+  class="fixed top-0 left-0 right-0 z-[1000] transition-all duration-300 bg-transparent"
+  aria-label="Mapa"
+>
+  <nav class="max-w-[1600px] mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between gap-3">
+    <!-- Brand: muestra texto blanco cuando esta sobre el mapa oscuro (sin scroll)
+         y texto primary cuando el fondo se vuelve solido. -->
+    <a
+      href={l('/')}
+      class="flex items-center gap-2 group"
+      title={t('nav.brandTitle')}
+      data-overlay-link
+    >
+      <img
+        src="/Logo.png"
+        alt="ArtesaNica Logo"
+        class="h-7 md:h-9 w-auto drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)] dark:hidden"
+      />
+      <img
+        src="/Logo Blanco.png"
+        alt="ArtesaNica Logo"
+        class="h-7 md:h-9 w-auto drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)] hidden dark:block"
+      />
+      <span
+        class="font-bold text-base md:text-lg tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] transition-colors group-hover:opacity-80"
+        data-overlay-text="light"
+      >
+        ArtesaNica
+      </span>
+    </a>
+
+    <!-- Right cluster: lang, theme, auth. Todos en estilo "pill" sutil. -->
+    <div class="flex items-center gap-1 md:gap-2">
+      <!-- Lang switcher (3 idiomas) -->
+      <LanguageDropdown
+        client:load
+        currentLang={lang}
+        currentPathname={Astro.url.pathname}
+        search={Astro.url.search}
+        variant="overlay"
+        label={t('nav.language')}
+      />
+
+      <!-- Theme toggle -->
+      <button
+        type="button"
+        id="map-theme-toggle"
+        data-overlay-pill
+        class="flex items-center justify-center size-9 rounded-full text-white hover:bg-blanco/20 transition-colors"
+        title={themeTooltip}
+        aria-label={themeTooltip}
+      >
+        <Icon name="lucide:sun" class="text-lg hidden dark:block" aria-hidden="true" />
+        <Icon name="lucide:moon" class="text-lg block dark:hidden" aria-hidden="true" />
+      </button>
+
+      <!-- Auth slot: misma isla que Header normal, variant desktop. -->
+      <HeaderAuthMenu
+        client:only="react"
+        variant="desktop"
+        lang={lang}
+        labels={authLabels}
+      >
+        <div
+          slot="fallback"
+          aria-hidden="true"
+          class="h-9 w-24 bg-blanco/30 backdrop-blur-sm rounded-full animate-pulse"
+        />
+      </HeaderAuthMenu>
+    </div>
+  </nav>
+</header>
+
+<script>
+  // =====================================================================
+  // Comportamiento scroll del overlay header + theme toggle.
+  //
+  // El <header> NO tiene `transition:persist`: al cambiar idioma el lang
+  // switcher debe reescribir su href con el nuevo locale, y persist
+  // congelaría el href anterior (causaría reload completo en vez de
+  // view-transition). En su lugar, este script es idempotente via
+  // `data-bound` flags: los listeners se atan una sola vez aunque el
+  // script se reejecute en cada navegación.
+  // =====================================================================
+  const STORAGE_KEY = 'artesa-theme';
+  const SCROLL_THRESHOLD = 40;
+
+  function initMapHeader() {
+    const header = document.getElementById('map-overlay-header');
+    const themeBtn = document.getElementById('map-theme-toggle');
+    if (!header) return;
+
+    // ----- Scroll listener (idempotente) -----
+    if (header.dataset.scrollBound !== '1') {
+      header.dataset.scrollBound = '1';
+      let rafId: number | null = null;
+      const onScroll = () => {
+        if (rafId !== null) return;
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          handleScroll(header);
+        });
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
+
+    // ----- Theme toggle (idempotente) -----
+    if (themeBtn && themeBtn.dataset.bound !== '1') {
+      themeBtn.dataset.bound = '1';
+      themeBtn.addEventListener('click', () => {
+        setTheme(currentTheme() === 'dark' ? 'light' : 'dark', themeBtn);
+      });
+    }
+
+    // Aplicar estado inicial segun scroll actual
+    handleScroll(header);
+  }
+
+  function applyHeaderState(header: HTMLElement, scrolled: boolean, theme: 'light' | 'dark') {
+    header.dataset.scrolled = String(scrolled);
+    header.dataset.themeState = theme;
+
+    // Reset todas las clases de estado para empezar limpio.
+    header.classList.remove(
+      'bg-transparent',
+      'bg-blanco/40',
+      'bg-blanco/85',
+      'dark:bg-[#0f172a]/85',
+      'backdrop-blur-md',
+      'border-b',
+      'border-borde/60',
+      'shadow-nav',
+    );
+
+    // ----- Fondo segun (scrolled, theme) -----
+    if (scrolled) {
+      // Siempre fondo solido + blur cuando hay scroll.
+      header.classList.add('bg-blanco/85', 'dark:bg-[#0f172a]/85', 'backdrop-blur-md', 'border-b', 'border-borde/60', 'shadow-nav');
+    } else if (theme === 'light') {
+      // Light mode + sin scroll: glass translucido para que el texto oscuro sea legible.
+      header.classList.add('bg-blanco/60', 'backdrop-blur-md');
+    }
+    // Dark + sin scroll: transparente, el mapa oscuro provee el contraste para texto blanco.
+
+    // ----- Brand -----
+    const brandText = header.querySelector<HTMLElement>('[data-overlay-text="light"]');
+    if (brandText) {
+      brandText.classList.remove(
+        'text-white',
+        'text-texto',
+        'text-primary',
+        'drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]',
+        'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]',
+        'drop-shadow-none',
+      );
+      if (scrolled) {
+        brandText.classList.add('text-primary', 'drop-shadow-none');
+      } else if (theme === 'light') {
+        // Light glass: brand oscuro con sombra sutil para destacar.
+        brandText.classList.add('text-texto', 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]');
+      } else {
+        // Dark transparent: brand blanco con sombra fuerte.
+        brandText.classList.add('text-white', 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]');
+      }
+    }
+
+    // ----- Pills (lang + theme) -----
+    const pills = header.querySelectorAll<HTMLElement>('[data-overlay-pill]');
+    pills.forEach((pill) => {
+      pill.classList.remove(
+        'text-white',
+        'text-texto',
+        'hover:bg-blanco/20',
+        'hover:bg-fondo',
+        'dark:hover:bg-[#0f172a]',
+      );
+      if (theme === 'dark' && !scrolled) {
+        pill.classList.add('text-white', 'hover:bg-blanco/20');
+      } else {
+        // Light glass, light scrolled, dark scrolled: siempre texto oscuro.
+        pill.classList.add('text-texto', 'hover:bg-fondo', 'dark:hover:bg-[#0f172a]');
+      }
+    });
+
+    // ----- Logo image: invertir cuando fondo es claro (logo tiene partes claras). -----
+    const logoImg = header.querySelector<HTMLImageElement>('img[alt="Artesanica Logo"]');
+    if (logoImg) {
+      // El logo PNG tiene fondo blanco -> se ve bien en dark scrolled y light glass,
+      // pero en dark transparent compite con el mapa. Dejamos sin cambios por ahora;
+      // si hace falta, se puede agregar un filtro CSS condicional.
+    }
+  }
+
+  function handleScroll(header: HTMLElement) {
+    const scrolled = window.scrollY > SCROLL_THRESHOLD;
+    const theme = currentTheme();
+    const stateKey = `${scrolled}|${theme}`;
+    if (header.dataset.stateKey !== stateKey) {
+      header.dataset.stateKey = stateKey;
+      applyHeaderState(header, scrolled, theme);
+    }
+  }
+
+  function currentTheme(): 'light' | 'dark' {
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  }
+
+  function applyTheme(next: 'light' | 'dark') {
+    const root = document.documentElement;
+    if (next === 'dark') root.classList.add('dark');
+    else root.classList.remove('dark');
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+    } catch (_) {}
+  }
+
+  function setTheme(next: 'light' | 'dark', btn: HTMLElement) {
+    const root = document.documentElement;
+    if (typeof document.startViewTransition !== 'function') {
+      applyTheme(next);
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    root.dataset.themeTransitioning = '1';
+    root.style.setProperty('--theme-x', `${x}px`);
+    root.style.setProperty('--theme-y', `${y}px`);
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      delete root.dataset.themeTransitioning;
+      root.style.removeProperty('--theme-x');
+      root.style.removeProperty('--theme-y');
+    };
+    try {
+      const transition = document.startViewTransition(() => applyTheme(next));
+      transition.finished.finally(cleanup).catch(() => cleanup());
+      setTimeout(cleanup, 1000);
+    } catch (_) {
+      cleanup();
+      applyTheme(next);
+    }
+  }
+
+  // Init + re-init en cada navegacion (view transitions)
+  initMapHeader();
+  document.addEventListener('astro:page-load', () => {
+    initMapHeader();
+  });
+  document.addEventListener('astro:after-swap', () => {
+    // Despues del swap el header puede haber sido reemplazado.
+    // Re-leer refs y aplicar estado de scroll.
+    const header = document.getElementById('map-overlay-header');
+    if (header) handleScroll(header);
+  });
+
+  // Re-aplicar estado del header cuando cambia el tema (dark <-> light).
+  // El toggle de tema cambia la clase `.dark` en <html>.
+  new MutationObserver(() => {
+    const header = document.getElementById('map-overlay-header');
+    if (header) handleScroll(header);
+  }).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class', 'data-theme'],
+  });
+</script>

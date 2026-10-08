@@ -1,0 +1,202 @@
+[
+  {
+    "_key": "admin",
+    "email": "admin@artesa-nica.local",
+    "password": "Admin1234!",
+    "passwordConfirm": "Admin1234!",
+    "name": "Admin ArtesaNica",
+    "role": "admin",
+    "locale": "es",
+    "verified": true
+  },
+  {
+    "_key": "maria",
+    "email": "maria.lopez@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "María López",
+    "role": "seller",
+    "phone": "+505 8888 1111",
+    "locale": "es"
+  },
+  {
+    "_key": "jose",
+    "email": "jose.gonzalez@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "José González",
+    "role": "seller",
+    "phone": "+505 8888 2222",
+    "locale": "es"
+  },
+  {
+    "_key": "carlos",
+    "email": "carlos.mendez@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Carlos Méndez",
+    "role": "seller",
+    "phone": "+505 8888 3333",
+    "locale": "es"
+  },
+  {
+    "_key": "elena",
+    "email": "elena.castillo@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Elena Castillo",
+    "role": "seller",
+    "phone": "+505 8888 4444",
+    "locale": "es"
+  },
+  {
+    "_key": "felix",
+    "email": "felix.rojas@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Félix Rojas",
+    "role": "seller",
+    "phone": "+505 8888 5555",
+    "locale": "es"
+  },
+  {
+    "_key": "sofia",
+    "email": "sofia.hernandez@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Sofía Hernández",
+    "role": "seller",
+    "phone": "+505 8888 6666",
+    "locale": "es"
+  },
+  {
+    "_key": "roberto",
+    "email": "roberto.aguilar@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Roberto Aguilar",
+    "role": "seller",
+    "phone": "+505 8888 7777",
+    "locale": "es"
+  },
+  {
+    "_key": "carmen",
+    "email": "carmen.morales@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Carmen Morales",
+    "role": "seller",
+    "phone": "+505 8888 8888",
+    "locale": "es"
+  },
+  {
+    "_key": "miguel",
+    "email": "miguel.vargas@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Miguel Vargas",
+    "role": "seller",
+    "phone": "+505 8888 9999",
+    "locale": "es"
+  },
+  {
+    "_key": "lucia",
+    "email": "lucia.narvaez@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Lucía Narváez",
+    "role": "seller",
+    "phone": "+505 7777 1111",
+    "locale": "es"
+  },
+  {
+    "_key": "pedro",
+    "email": "pedro.ortiz@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Pedro Ortiz",
+    "role": "seller",
+    "phone": "+505 7777 2222",
+    "locale": "es"
+  },
+  {
+    "_key": "juan",
+    "email": "juan.salazar@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Juan Salazar",
+    "role": "seller",
+    "phone": "+505 7777 3333",
+    "locale": "es"
+  },
+  {
+    "_key": "isabel",
+    "email": "isabel.cordoba@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Isabel Córdoba",
+    "role": "seller",
+    "phone": "+505 7777 4444",
+    "locale": "es"
+  },
+  {
+    "_key": "ana_seller",
+    "email": "ana.moreno@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Ana Moreno",
+    "role": "seller",
+    "phone": "+505 7777 5555",
+    "locale": "es"
+  },
+  {
+    "_key": "diego_seller",
+    "email": "diego.espinoza@artesa-nica.local",
+    "password": "Seller1234!",
+    "passwordConfirm": "Seller1234!",
+    "name": "Diego Espinoza",
+    "role": "seller",
+    "phone": "+505 7777 6666",
+    "locale": "es"
+  },
+  {
+    "_key": "luis",
+    "email": "luis.perez@artesa-nica.local",
+    "password": "Buyer1234!",
+    "passwordConfirm": "Buyer1234!",
+    "name": "Luis Pérez",
+    "role": "user",
+    "phone": "+505 8855 1111",
+    "locale": "es"
+  },
+  {
+    "_key": "ana_buyer",
+    "email": "ana.martinez@artesa-nica.local",
+    "password": "Buyer1234!",
+    "passwordConfirm": "Buyer1234!",
+    "name": "Ana Martínez",
+    "role": "user",
+    "phone": "+505 8855 2222",
+    "locale": "es"
+  },
+  {
+    "_key": "diego_buyer",
+    "email": "diego.ruiz@artesa-nica.local",
+    "password": "Buyer1234!",
+    "passwordConfirm": "Buyer1234!",
+    "name": "Diego Ruiz",
+    "role": "user",
+    "phone": "+505 8855 3333",
+    "locale": "es"
+  },
+  {
+    "_key": "carmen_buyer",
+    "email": "carmen.flores@artesa-nica.local",
+    "password": "Buyer1234!",
+    "passwordConfirm": "Buyer1234!",
+    "name": "Carmen Flores",
+    "role": "user",
+    "phone": "+505 8855 4444",
+    "locale": "es"
+  }
+]

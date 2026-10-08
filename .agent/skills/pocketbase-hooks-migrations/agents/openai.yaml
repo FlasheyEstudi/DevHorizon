@@ -1,0 +1,4 @@
+interface:
+  display_name: "PocketBase Hooks & Migrations"
+  short_description: "Build safe, optimized PocketBase runtime code"
+  default_prompt: "Use $pocketbase-hooks-migrations to implement or audit XpressPOS PocketBase hooks, routes, shared services, queries, and migrations with correct JSVM scope, authorization, transactions, idempotency, and verification."

@@ -1,0 +1,11 @@
+---
+export const prerender = false;
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ResetPasswordContent from '../../components/pages/ResetPasswordContent.astro';
+
+const token = Astro.url.searchParams.get('token');
+---
+
+<BaseLayout title={`Reset Password — ArtesaNica`} noindex={true}>
+  <ResetPasswordContent lang="en" token={token} />
+</BaseLayout>

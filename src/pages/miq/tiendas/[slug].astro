@@ -1,0 +1,74 @@
+---
+export const prerender = false;
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import StoreDetailContent from '../../../components/pages/StoreDetailContent.astro';
+import StoreNotFoundContent from '../../../components/pages/StoreNotFoundContent.astro';
+import { pb, pbFileUrl } from '../../../lib/pocketbase';
+import type { RecordModel } from 'pocketbase';
+
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+interface StoreRecord extends RecordModel {
+  name?: string; slug?: string; description?: string;
+  location?: string; category?: string; logo?: string;
+}
+interface ProductRecord extends RecordModel {
+  name?: string; slug?: string; price?: number; images?: string[];
+}
+
+const { slug } = Astro.params;
+
+let store: StoreRecord | null = null;
+let products: ProductRecord[] = [];
+let notFound = false;
+
+// 1. Validar que el slug cumpla el patrón seguro antes de consultar la DB (H-21)
+if (!slug || !SLUG_PATTERN.test(slug)) {
+  notFound = true;
+  Astro.response.status = 404;
+} else {
+  // 2. Consulta de la tienda con pb.filter parametrizado (H-21)
+  try {
+    store = await pb.collection('stores').getFirstListItem<StoreRecord>(
+      pb.filter('slug = {:slug}', { slug })
+    );
+  } catch {
+    notFound = true;
+  }
+
+  // 3. Consulta secundaria de productos desacoplada (H-23)
+  if (store) {
+    try {
+      const res = await pb.collection('products').getList<ProductRecord>(1, 50, {
+        sort: '-created_at',
+        filter: pb.filter('store = {:storeId}', { storeId: store.id }),
+      });
+      products = res.items;
+    } catch {
+      products = [];
+    }
+  } else {
+    notFound = true;
+  }
+
+  if (notFound) {
+    Astro.response.status = 404;
+  }
+}
+
+const storeLogo = store?.logo && store.id
+  ? pbFileUrl('stores', store.id, store.logo)
+  : null;
+---
+
+<BaseLayout
+  title={store?.name ? `${store.name} — ArtesaNica` : 'Watla — ArtesaNica'}
+  description={store?.description || undefined}
+  image={storeLogo}
+  noindex={notFound || !store}
+>
+  {notFound || !store
+    ? <StoreNotFoundContent lang="miq" />
+    : <StoreDetailContent lang="miq" store={store} products={products} />
+  }
+</BaseLayout>

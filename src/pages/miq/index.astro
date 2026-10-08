@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import HomeContent from '../../components/pages/HomeContent.astro';
+---
+
+<BaseLayout isHome={true}>
+  <HomeContent lang="miq" />
+</BaseLayout>

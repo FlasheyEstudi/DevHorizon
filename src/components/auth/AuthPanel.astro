@@ -1,0 +1,108 @@
+---
+// =============================================================================
+// AuthPanel.astro — Panel visual compartido para /login y /registro.
+// =============================================================================
+// Split layout 2-col en md+. En <md el panel se oculta completamente
+// (`hidden md:flex`) — el form toma toda la pantalla.
+//
+// Rediseño v2 (estilo NicaExplora-inspired, ArtesaNica brand):
+//   - Foto full-screen como background + overlay verde (bg-primary/75 +
+//     mix-blend-multiply) que tinta la imagen con el color de marca.
+//   - Brand mark (logo + "ArtesaNica") en la esquina superior izquierda.
+//   - Headline + tagline + social proof (avatares) + copyright abajo.
+//
+// Props:
+//   - taglineKey: clave i18n para el subtítulo bajo el headline.
+//   - imageAltKey: clave i18n para el `alt` accesible de la foto.
+//   - imageUrl: URL de la foto (default = la del hero en PostImg).
+//
+// Si PostImg cae, el panel queda verde sólido (bg-primary) — fallback graceful.
+// =============================================================================
+
+import { useTranslations, localizePath } from '../../i18n/utils';
+import type { Lang } from '../../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  taglineKey: string;
+  imageAltKey: string;
+  imageUrl?: string;
+}
+
+const {
+  lang,
+  taglineKey,
+  imageAltKey,
+  imageUrl = 'https://i.postimg.cc/gk4KW3sG/IMG-20251112-WA0053.jpg',
+} = Astro.props;
+
+const t = useTranslations(lang);
+const l = (path: string) => localizePath(path, lang);
+---
+
+<aside
+  class="hidden lg:flex lg:w-1/2 auth-anim-panel relative overflow-hidden bg-primary flex-col"
+  aria-label={t('auth.panel.headline')}
+>
+  <!-- Foto full-screen como background, sin blur para maxima nitidez -->
+  <img
+    src={imageUrl}
+    alt={t(imageAltKey)}
+    loading="eager"
+    fetchpriority="high"
+    decoding="async"
+    class="absolute inset-0 w-full h-full object-cover"
+  />
+
+  <!-- Overlay de gradiente verde a azul/turquesa de marca (sin mix-blend-multiply para mantener la imagen visible) -->
+  <div
+    class="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-secondary/90"
+    aria-hidden="true"
+  >
+  </div>
+
+  <!-- Brand mark arriba izquierda -->
+  <div class="relative z-10 p-12 shrink-0">
+    <a
+      href={l('/')}
+      class="inline-flex items-center gap-3 text-white hover:text-white/90 transition-colors group"
+      title={t('nav.brandTitle')}
+    >
+      <span
+        class="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20 flex items-center justify-center p-2 group-hover:bg-white/30 transition-colors"
+      >
+        <img src="/Logo Blanco.png" alt="ArtesaNica Logo" class="h-full w-auto object-contain" />
+      </span>
+      <span class="text-2xl font-bold tracking-tight">ArtesaNica</span>
+    </a>
+  </div>
+
+  <!-- Contenido abajo: headline + quote + social proof + copyright -->
+  <div class="relative z-10 mt-auto p-12 flex flex-col gap-6 shrink-0">
+    <div>
+      <h2 class="text-4xl font-bold text-white leading-tight mb-3">
+        {t('auth.panel.headline')}
+      </h2>
+      <p class="text-white/95 text-base lg:text-lg leading-relaxed max-w-sm">
+        {t(taglineKey)}
+      </p>
+    </div>
+
+    <!-- Social proof: avatares + texto -->
+    <div class="flex items-center gap-4 pt-4">
+      <div class="flex -space-x-2" aria-hidden="true">
+        <div class="w-10 h-10 rounded-full bg-primary border-2 border-white"></div>
+        <div class="w-10 h-10 rounded-full bg-secondary border-2 border-white"></div>
+        <div class="w-10 h-10 rounded-full bg-primary-dark border-2 border-white"></div>
+      </div>
+      <p class="text-white/95 text-sm">
+        {t('auth.panel.socialProof')}
+      </p>
+    </div>
+
+    <!-- Footer copyright -->
+    <p class="text-white/70 text-xs">
+      © 2025 ArtesaNica. {t('auth.panel.copyright')}
+    </p>
+  </div>
+</aside>

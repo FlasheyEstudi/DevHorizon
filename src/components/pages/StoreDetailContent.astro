@@ -1,0 +1,137 @@
+---
+import { pbFileUrl } from "../../lib/pocketbase";
+import { useTranslations, localizePath } from "../../i18n/utils";
+import type { Lang } from "../../i18n/ui";
+import type { RecordModel } from "pocketbase";
+import { Icon } from "astro-icon/components";
+
+interface Props {
+  lang: Lang;
+  store: StoreRecord;
+  products: ProductRecord[];
+}
+
+interface StoreRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  description?: string;
+  // Renamed from `location` (TEXT) to `address_text` in migration 1700000008.
+  address_text?: string;
+  category?: string;
+  logo?: string;
+}
+interface ProductRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  price?: number;
+  images?: string[];
+}
+
+const { lang, store, products } = Astro.props;
+const t = useTranslations(lang);
+const l = (path: string) => localizePath(path, lang);
+
+function productImageUrl(p: ProductRecord): string | null {
+  if (p.images && p.images.length > 0) {
+    return pbFileUrl(p.collectionId, p.id, p.images[0]);
+  }
+  return null;
+}
+function storeLogoUrl(s: StoreRecord): string | null {
+  if (s.logo) return pbFileUrl(s.collectionId, s.id, s.logo);
+  return null;
+}
+---
+
+<section class="py-12">
+  <div class="max-w-7xl mx-auto px-4">
+    <div
+      class="flex flex-col md:flex-row gap-6 items-center md:items-start py-4 border-b border-gray-200"
+    >
+      {
+        storeLogoUrl(store) ? (
+          <img
+            src={storeLogoUrl(store)}
+            alt={store.name}
+            class="w-30 h-30 object-cover rounded-lg"
+          />
+        ) : (
+          <div class="w-30 h-30 aspect-square bg-borde flex items-center justify-center text-texto-secundario text-4xl rounded-lg">
+            <Icon name="lucide:store" />
+          </div>
+        )
+      }
+      <div class="flex-1">
+        <h1 class="text-3xl font-bold text-texto mb-2">{store.name}</h1>
+        {
+          store.address_text && (
+            <p class="text-texto-secundario flex items-center gap-1 mb-2">
+              <Icon name="lucide:map-pin" /> {store.address_text}
+            </p>
+          )
+        }
+        {
+          store.category && (
+            <span class="inline-block px-3 py-1 bg-primary text-white rounded-full text-xs mb-3">
+              {store.category}
+            </span>
+          )
+        }
+        {
+          store.description && (
+            <p class="text-texto leading-relaxed">{store.description}</p>
+          )
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-12">
+  <div class="max-w-7xl mx-auto px-4">
+    <h2 class="text-2xl font-bold text-texto mb-6">
+      {t("store.productsOf")}
+      {store.name}
+    </h2>
+    {
+      products.length === 0 ? (
+        <p class="text-texto-secundario text-center py-8">
+          {t("store.storeEmpty")}
+        </p>
+      ) : (
+        <div class="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {products.map((p) => {
+            const img = productImageUrl(p);
+            return (
+              <a
+                href={l(`/productos/${p.slug}`)}
+                class="bg-blanco rounded-xl shadow-card hover:shadow-card-hover transition-shadow overflow-hidden flex flex-col"
+              >
+                {img ? (
+                  <img
+                    src={img}
+                    alt={p.name}
+                    class="w-full aspect-square object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="aspect-square bg-borde flex items-center justify-center text-texto-secundario text-4xl">
+                    <Icon name="lucide:image" />
+                  </div>
+                )}
+                <div class="p-4 flex-1 flex flex-col">
+                  <h3 class="text-lg font-semibold text-texto mb-2 line-clamp-2">
+                    {p.name}
+                  </h3>
+                  <p class="text-primary font-bold text-lg">
+                    C$ {p.price?.toFixed(2) ?? "0.00"}
+                  </p>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )
+    }
+  </div>
+</section>

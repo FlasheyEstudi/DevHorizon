@@ -1,0 +1,89 @@
+---
+// =============================================================================
+// /onboarding — Spanish onboarding route.
+// =============================================================================
+// Authenticated seller flow. Page-level guard (matches perfil.astro pattern;
+// per ADR-005 we don't extend middleware for one route).
+//
+// Redirects:
+//   - Unauthenticated → /login?next=<encoded current path>
+//   - Authenticated but no store → empty-state (still renders the page,
+//     no map) with a localized "create your store first" CTA.
+//   - Authenticated with store → <OnboardingContent>.
+// =============================================================================
+
+export const prerender = false;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import OnboardingContent from '../components/pages/OnboardingContent.astro';
+import { pocketbaseFor } from '../lib/pocketbase';
+import { getLangFromUrl, localizePath } from '../i18n/utils';
+import { ui } from '../i18n/ui';
+import type { RecordModel } from 'pocketbase';
+
+const lang = getLangFromUrl(Astro.url);
+
+const pb = pocketbaseFor(Astro.request);
+const authRecord = pb.authStore.record;
+
+if (!authRecord) {
+  return Astro.redirect(
+    `/login?next=${encodeURIComponent(Astro.url.pathname)}`
+  );
+}
+
+interface StoreRecord extends RecordModel {
+  name?: string; slug?: string;
+  location?: { lat: number; lon: number } | null;
+  department?: string;
+  address_text?: string;
+}
+
+let store: StoreRecord | null = null;
+let noStore = false;
+try {
+  const result = await pb.collection('stores').getList<StoreRecord>(1, 1, {
+    filter: `owner = "${authRecord.id}"`,
+  });
+  store = result.items[0] ?? null;
+  if (!store) noStore = true;
+} catch {
+  noStore = true;
+}
+
+const t = (key: string): string =>
+  (ui[lang] as Record<string, string>)[key] ??
+  (ui.es as Record<string, string>)[key] ??
+  key;
+---
+
+<BaseLayout title={t('onboarding.title')}>
+  {
+    noStore ? (
+      <section class="py-16">
+        <div class="max-w-md mx-auto px-4 text-center">
+          <h1 class="text-2xl font-bold text-texto mb-4">
+            {t('onboarding.title')}
+          </h1>
+          <p class="text-texto-secundario mb-6">
+            {t('onboarding.noStore')}
+          </p>
+          <a
+            href={localizePath('/perfil', lang)}
+            class="inline-block bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
+          >
+            {t('nav.menu.profile')}
+          </a>
+        </div>
+      </section>
+    ) : (
+      <script is:inline define:vars={{ storeId: store!.id }}>
+        // Expose the store ID to the inline vanilla script in OnboardingContent.
+        // This avoids passing IDs via the React island props (the script is
+        // outside the React tree).
+        window.__storeId = storeId;
+      </script>
+      <OnboardingContent store={store!} lang={lang} />
+    )
+  }
+</BaseLayout>

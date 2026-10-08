@@ -1,0 +1,102 @@
+---
+// =============================================================================
+// /miq/mapa — Miskitu public mapa route (full-bleed).
+// =============================================================================
+
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MapaContent, { type StoreMarkerDTO } from '../../components/pages/MapaContent.astro';
+import { pb, pbFileUrl } from '../../lib/pocketbase';
+import { isValidLocation } from '../../lib/geo';
+import { useTranslations } from '../../i18n/utils';
+import type { RecordModel } from 'pocketbase';
+import type { MapCategory } from '../../components/maps/mapShared';
+
+const lang = 'miq' as const;
+const t = useTranslations(lang);
+
+interface StoreRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  location?: { lat: number; lon: number } | null;
+  department?: string;
+  address_text?: string;
+  category?: string;
+  logo?: string;
+  description?: string;
+  schedule?: any;
+  schedule_text?: string;
+  is_demonstrative?: boolean;
+  total_products?: number;
+  rating_avg?: number;
+  total_reviews?: number;
+}
+
+interface CategoryRecord extends RecordModel {
+  name: string;
+  slug: string;
+  icon?: string;
+  description?: string;
+  total_stores?: number;
+  total_products?: number;
+}
+
+let stores: StoreMarkerDTO[] = [];
+let categories: MapCategory[] = [];
+let fetchError = false;
+try {
+  const [rawStores, rawCategories] = await Promise.all([
+    pb.collection('view_stores_directory').getFullList<StoreRecord>({
+      filter: 'location != null',
+      sort: '-id',
+    }),
+    pb.collection('view_category_stats').getFullList<CategoryRecord>({
+      filter: 'total_stores > 0',
+      sort: '-total_stores',
+    }),
+  ]);
+
+  stores = rawStores
+    .filter((s) => isValidLocation(s.location))
+    .map((s) => {
+      const logoUrl = s.logo
+        ? pbFileUrl('stores', s.id, s.logo)
+        : undefined;
+      return {
+        id: s.id,
+        name: s.name ?? '',
+        slug: s.slug ?? '',
+        location: s.location!,
+        department: s.department,
+        address_text: s.address_text,
+        category: s.category,
+        logo: s.logo,
+        logoUrl,
+        description: s.description,
+        schedule: s.schedule,
+        schedule_text: s.schedule_text,
+        is_demonstrative: s.is_demonstrative,
+        total_products: s.total_products ?? 0,
+        rating_avg: s.rating_avg ?? 0,
+        total_reviews: s.total_reviews ?? 0,
+      };
+    });
+
+  categories = rawCategories.map((c) => ({
+    slug: c.slug,
+    label: c.name,
+    icon: c.icon,
+    count: c.total_stores ?? 0,
+  }));
+} catch (err) {
+  console.error('[mapa:miq] Failed to fetch stores or categories:', err);
+  stores = [];
+  categories = [];
+  fetchError = true;
+}
+---
+
+<BaseLayout title={t('map.title')} variant="fullbleed">
+  <MapaContent stores={stores} categories={categories} lang={lang} fetchError={fetchError} />
+</BaseLayout>

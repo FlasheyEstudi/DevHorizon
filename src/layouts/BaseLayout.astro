@@ -1,0 +1,167 @@
+---
+// =============================================================================
+// BaseLayout.astro
+// =============================================================================
+// Layout raiz. Detecta el locale desde el URL y lo aplica al <html lang>.
+// Usa src/i18n/ui.ts + src/i18n/utils.ts para traducciones.
+//
+// Uso:
+//   <BaseLayout title="..." description="...">
+//     <h1>{t('home.title')}</h1>
+//   </BaseLayout>
+// =============================================================================
+
+import '../styles/global.css';
+
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import ToastContainer from '../components/ui/ToastContainer';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { ClientRouter } from 'astro:transitions';
+import { Font } from 'astro:assets';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string | null;
+  ogType?: 'website' | 'article' | 'product';
+  noindex?: boolean;
+  isHome?: boolean;
+  /**
+   * `default` — layout normal con Header sticky + Footer + padding main.
+   * `fullbleed` — pantalla completa sin Header/Footer ni padding.
+   *              Usado por /mapa para una experiencia inmersiva tipo Google Maps.
+   */
+  variant?: 'default' | 'fullbleed';
+}
+
+const {
+  title = 'ArtesaNica — Productos Artesanales de Nicaragua',
+  description = 'Descubre productos artesanales unicos, hechos con amor y tradicion.',
+  image = null,
+  ogType = 'website',
+  noindex = false,
+  isHome = false,
+  variant = 'default',
+} = Astro.props;
+
+const isFullbleed = variant === 'fullbleed';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+// Title traducido segun locale.
+const defaultTitle = lang === 'en'
+  ? 'ArtesaNica — Handcrafted Products from Nicaragua'
+  : lang === 'miq'
+  ? 'ArtesaNica — Nicaragua mita ni paskan dukia nani'
+  : 'ArtesaNica — Productos Artesanales de Nicaragua';
+const defaultDescription = lang === 'en'
+  ? 'Discover unique handcrafted products, made with love and tradition.'
+  : lang === 'miq'
+  ? 'Mita ni paskan dukia nani pliki, latwan kumi bara kaiskan wal paskan.'
+  : 'Descubre productos artesanales unicos, hechos con amor y tradicion.';
+
+const finalTitle = title === 'ArtesaNica — Productos Artesanales de Nicaragua' ? defaultTitle : title;
+const finalDescription = description === 'Descubre productos artesanales unicos, hechos con amor y tradicion.' ? defaultDescription : description;
+
+const siteUrl = Astro.site ? Astro.site.origin : 'https://artesanica.ni';
+const canonicalURL = new URL(Astro.url.pathname, siteUrl).href;
+
+// URLs alternativas para hreflang
+const pathname = Astro.url.pathname;
+const pathWithoutLang = pathname.replace(/^\/(es|en|miq)(?=\/|$)/, '') || '/';
+const esURL = new URL(pathWithoutLang === '/' ? '/' : pathWithoutLang, siteUrl).href;
+const enURL = new URL(pathWithoutLang === '/' ? '/en/' : `/en${pathWithoutLang}`, siteUrl).href;
+const miqURL = new URL(pathWithoutLang === '/' ? '/miq/' : `/miq${pathWithoutLang}`, siteUrl).href;
+
+// Imagen Open Graph absoluta
+const defaultOgImage = new URL('/Logo.png', siteUrl).href;
+let ogImageUrl = defaultOgImage;
+if (image) {
+  ogImageUrl = image.startsWith('http') ? image : new URL(image, siteUrl).href;
+}
+
+const robotsContent = noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large';
+---
+
+<!DOCTYPE html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{finalTitle}</title>
+    <meta name="description" content={finalDescription} />
+    <meta name="robots" content={robotsContent} />
+
+    <!-- Canonical & Hreflang alternates -->
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="alternate" hreflang="es" href={esURL} />
+    <link rel="alternate" hreflang="en" href={enURL} />
+    <link rel="alternate" hreflang="miq" href={miqURL} />
+    <link rel="alternate" hreflang="x-default" href={esURL} />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="ArtesaNica" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={finalTitle} />
+    <meta property="og:description" content={finalDescription} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:locale" content={lang === 'en' ? 'en_US' : lang === 'miq' ? 'miq_NI' : 'es_NI'} />
+    <meta property="og:locale:alternate" content="es_NI" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="miq_NI" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
+    <meta name="twitter:title" content={finalTitle} />
+    <meta name="twitter:description" content={finalDescription} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    <!-- Tema light/dark: aplica `.dark` antes del primer paint para evitar FOUC.
+         Orden de preferencia: localStorage > prefers-color-scheme > light. -->
+    <script is:inline>
+      (function () {
+        function applyTheme() {
+          try {
+            var stored = localStorage.getItem('artesa-theme');
+            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = stored || (prefersDark ? 'dark' : 'light');
+            if (theme === 'dark') {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
+            document.documentElement.dataset.theme = theme;
+          } catch (_) {
+            /* localStorage no disponible — cae a light */
+          }
+        }
+        applyTheme();
+        document.addEventListener('astro:after-swap', applyTheme);
+      })();
+    </script>
+
+    <ClientRouter />
+  </head>
+  <body class:list={[isFullbleed && 'overflow-hidden h-[100dvh]']}>
+    <ToastContainer client:only="react" />
+    <Header lang={lang} t={t} isHome={isHome} transition:persist hidden={isFullbleed} />
+    <main
+      class:list={[
+        isFullbleed
+          ? 'h-[100dvh] w-screen overflow-hidden'
+          : 'min-h-[calc(100vh-200px)] pb-28 md:pb-0',
+      ]}
+    >
+      <slot />
+    </main>
+    {!isFullbleed && <Footer lang={lang} t={t} />}
+  </body>
+</html>

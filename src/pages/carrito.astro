@@ -1,0 +1,18 @@
+---
+export const prerender = false;
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CartContent from '../components/pages/CartContent.astro';
+import { getLangFromUrl } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+// Belt-and-braces guard: middleware already redirects, but if the route is
+// ever rendered without middleware, fail closed.
+if (!Astro.locals.user) {
+  return Astro.redirect(`/login?next=${encodeURIComponent(Astro.url.pathname)}`);
+}
+---
+
+<BaseLayout title={`Mi Carrito — ArtesaNica`} noindex={true}>
+  <CartContent lang={lang} />
+</BaseLayout>

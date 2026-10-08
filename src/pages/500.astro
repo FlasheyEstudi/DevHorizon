@@ -1,0 +1,65 @@
+---
+export const prerender = false;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getLangFromUrl } from '../i18n/utils';
+
+interface Props {
+  error: unknown;
+}
+
+const { error } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+
+if (error) {
+  console.error('[500 Error Handler]:', error);
+}
+---
+
+<BaseLayout
+  title={
+    lang === 'en'
+      ? 'Server Error — ArtesaNica'
+      : lang === 'miq'
+      ? 'Server Miskisa — ArtesaNica'
+      : 'Error del Servidor — ArtesaNica'
+  }
+>
+  <div class="min-h-[70vh] flex items-center justify-center px-4 py-16">
+    <div class="max-w-md w-full text-center">
+      <div class="inline-flex items-center justify-center size-20 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 mb-6">
+        <svg class="size-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold text-texto-primario mb-3">
+        {lang === 'en'
+          ? 'Something went wrong'
+          : lang === 'miq'
+          ? 'Dukia kumi miskisa'
+          : 'Ocurrió un error inesperado'}
+      </h1>
+      <p class="text-texto-secundario text-sm mb-8 leading-relaxed">
+        {lang === 'en'
+          ? 'Our artisan servers are currently experiencing difficulties or undergoing maintenance. Please try again shortly.'
+          : lang === 'miq'
+          ? 'Yawan serverka ba miskisa sapa mantenimientora sa. Kli tabaika nian taim ra.'
+          : 'Nuestros servidores están experimentando dificultades temporales o mantenimiento. Por favor, intenta de nuevo en unos momentos.'}
+      </p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <button
+          onclick="window.location.reload()"
+          class="w-full sm:w-auto px-6 py-2.5 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition shadow-sm cursor-pointer"
+        >
+          {lang === 'en' ? 'Retry' : lang === 'miq' ? 'Kli muni' : 'Reintentar'}
+        </button>
+        <a
+          href={lang === 'es' ? '/' : `/${lang}/`}
+          class="w-full sm:w-auto px-6 py-2.5 bg-surface border border-borde text-texto-primario rounded-xl font-medium hover:bg-surface-hover transition shadow-sm"
+        >
+          {lang === 'en' ? 'Back to Home' : lang === 'miq' ? 'Kli wapaia watla ra' : 'Volver al Inicio'}
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

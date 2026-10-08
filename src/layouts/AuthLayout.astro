@@ -1,0 +1,89 @@
+---
+// =============================================================================
+// AuthLayout.astro — Layout dedicado para /login y /registro.
+// =============================================================================
+// Versión "desnuda" de BaseLayout.astro: misma estructura de <head> (Font,
+// ClientRouter, theme init, meta, i18n), pero SIN Header ni Footer. La página
+// de auth vive a pantalla completa (<main class="min-h-screen">).
+//
+// Se usa en /login y /registro. /recuperar y /restablecer siguen en
+// BaseLayout porque no son auth principal (son flujo de password reset).
+// =============================================================================
+
+import '../styles/global.css';
+
+import { getLangFromUrl } from '../i18n/utils';
+import { ClientRouter } from 'astro:transitions';
+import { Font } from 'astro:assets';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'ArtesaNica — Productos Artesanales de Nicaragua',
+  description = 'Descubre productos artesanales unicos, hechos con amor y tradicion.',
+} = Astro.props;
+
+const lang = getLangFromUrl(Astro.url);
+
+const defaultTitle = lang === 'en'
+  ? 'ArtesaNica — Handcrafted Products from Nicaragua'
+  : lang === 'miq'
+  ? 'ArtesaNica — Nicaragua mita ni paskan dukia nani'
+  : 'ArtesaNica — Productos Artesanales de Nicaragua';
+const defaultDescription = lang === 'en'
+  ? 'Discover unique handcrafted products, made with love and tradition.'
+  : lang === 'miq'
+  ? 'Mita ni paskan dukia nani pliki, latwan kumi bara kaiskan wal paskan.'
+  : 'Descubre productos artesanales unicos, hechos con amor y tradicion.';
+
+const finalTitle = title === 'ArtesaNica — Productos Artesanales de Nicaragua' ? defaultTitle : title;
+const finalDescription = description === 'Descubre productos artesanales unicos, hechos con amor y tradicion.' ? defaultDescription : description;
+---
+
+<!DOCTYPE html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={finalDescription} />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    <!-- Astro Fonts API — self-hosts Poppins y setea --font-poppins en :root. -->
+    <Font cssVariable="--font-poppins" preload />
+
+    <title>{finalTitle}</title>
+
+    <!-- Tema light/dark: aplica `.dark` antes del primer paint para evitar FOUC. -->
+    <script is:inline>
+      (function () {
+        function applyTheme() {
+          try {
+            var stored = localStorage.getItem('artesa-theme');
+            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = stored || (prefersDark ? 'dark' : 'light');
+            if (theme === 'dark') {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
+            document.documentElement.dataset.theme = theme;
+          } catch (_) {}
+        }
+        applyTheme();
+        document.addEventListener('astro:after-swap', applyTheme);
+      })();
+    </script>
+
+    <ClientRouter />
+  </head>
+  <body>
+    <main class="min-h-screen">
+      <slot />
+    </main>
+  </body>
+</html>

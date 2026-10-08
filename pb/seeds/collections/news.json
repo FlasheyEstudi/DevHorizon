@@ -1,0 +1,26 @@
+[
+  {
+    "_key": "noticia_1",
+    "title": "Feria de Artesanías en Niquinohomo 2026",
+    "slug": "feria-de-artesanias-niquinohomo-2026",
+    "summary": "Este fin de semana celebramos el talento de nuestros artesanos locales con exposiciones y talleres interactivos.",
+    "content": "<p>Nos complace anunciar la gran <strong>Feria de Artesanías Niquinohomo 2026</strong>. Un evento donde más de 50 artesanos de la región presentarán sus mejores creaciones en cerámica, madera, cuero y textiles.</p><p>Habrá talleres interactivos para toda la familia, demostraciones en vivo del torno alfarero y presentaciones culturales tradicionales.</p>",
+    "status": "published"
+  },
+  {
+    "_key": "noticia_2",
+    "title": "Nuevos talleres de alfarería para jóvenes creadores",
+    "slug": "nuevos-talleres-de-alfareria-jovenes",
+    "summary": "Iniciativa para preservar las técnicas ancestrales de modelado en barro entre las nuevas generaciones.",
+    "content": "<p>Con el objetivo de preservar nuestra herencia cultural, los maestros alfareros de San Juan de Oriente y Niquinohomo abren inscripciones para talleres gratuitos dirigidos a jóvenes interesados en aprender el oficio artesanal.</p>",
+    "status": "published"
+  },
+  {
+    "_key": "noticia_3",
+    "title": "Reconocimiento a la Excelencia Artesanal Nicaragüense",
+    "slug": "reconocimiento-excelencia-artesanal",
+    "summary": "Tres talleres comunitarios de ArtesaNica reciben distinciones internacionales por la sostenibilidad de sus procesos.",
+    "content": "<p>Tres de nuestras marcas aliadas han sido galardonadas por la calidad de sus acabados y el uso de tintes naturales biodegradables. ¡Felicidades a todos los maestros y maestras involucrados!</p>",
+    "status": "published"
+  }
+]

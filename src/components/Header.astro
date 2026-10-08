@@ -1,0 +1,498 @@
+---
+// =============================================================================
+// Header.astro
+// =============================================================================
+// Navbar responsivo:
+// - Desktop (md+): navbar superior sticky con brand + iconos + labels
+// - Mobile (<md): bottom nav flotante con indicador activo animado
+// Migrado a Tailwind CSS v4.
+//
+// El indicador activo del mobile nav usa un unico elemento flotante que se
+// desplaza horizontalmente via CSS transform. La animacion de "rolling"
+// entre items se logra con:
+// - SSR: el indicador se renderiza en la posicion target
+// - JS: al cargar, lee la posicion previa de localStorage. Si difiere,
+//   resetea a la previa sin transicion, fuerza reflow, y anima a target
+// - localStorage guarda el ultimo idx para la siguiente navegacion
+// =============================================================================
+
+import { localizePath, getOtherLocale, getPathWithoutLocale } from "../i18n/utils";
+import type { Lang } from "../i18n/ui";
+import { Icon } from "astro-icon/components";
+import HeaderAuthMenu from "./header/HeaderAuthMenu";
+import HeaderMobileDrawer from "./header/HeaderMobileDrawer";
+import LanguageDropdown from "./header/LanguageDropdown";
+
+interface Props {
+  lang: Lang;
+  /** Funcion de traduccion (acepta cualquier key string, retorna string). */
+  t: (key: string) => string;
+  isHome?: boolean;
+  /** Si true, no renderiza ni desktop ni mobile nav. Usado por variant="fullbleed". */
+  hidden?: boolean;
+}
+
+const { lang, t, hidden = false } = Astro.props;
+const otherLang = getOtherLocale(lang);
+
+if (hidden) {
+  // fullbleed: la pagina renderiza su propio header (ej. MapOverlayHeader).
+  // Devolvemos un Fragment vacio para no inyectar nav sticky ni bottom bar.
+}
+
+const currentPath = getPathWithoutLocale(Astro.url.pathname);
+const switchHref = localizePath(
+  currentPath === "/" ? "" : currentPath,
+  otherLang,
+);
+
+function l(path: string): string {
+  return localizePath(path, lang);
+}
+
+// =====================================================================
+// Mobile nav: deteccion del item activo segun URL actual
+// =====================================================================
+const navItems = [
+  { href: l("/"), icon: "lucide:home", label: t("nav.home") },
+  { href: l("/productos"), icon: "lucide:search", label: t("nav.products") },
+  {
+    href: l("/carrito"),
+    icon: "lucide:shopping-cart",
+    label: t("nav.cart"),
+    counterId: "cart-counter-mobile",
+  },
+  { href: l("/mapa"), icon: "lucide:map", label: t("nav.map") },
+];
+
+function getActiveIdx(p: string): number {
+  if (p === "/" || p === "") return 0;
+  if (p.startsWith("/productos")) return 1;
+  if (p.startsWith("/carrito")) return 2;
+  if (p.startsWith("/mapa")) return 3;
+  return -1;
+}
+const activeIndex = getActiveIdx(currentPath);
+
+// =====================================================================
+// Auth & Drawer menu labels — strings serializables para las islas React.
+// Astro serializa props a JSON; pasar funciones no funciona.
+// =====================================================================
+const authLabels = {
+  login: t("nav.login"),
+  profile: t("nav.menu.profile"),
+  cart: t("nav.menu.cart"),
+  logout: t("nav.menu.logout"),
+  greeting: t("nav.menu.greeting"),
+  store: t("profile.sidebar.store"),
+};
+
+const drawerLabels = {
+  home: t("nav.home"),
+  products: t("nav.products"),
+  news: t("nav.news"),
+  cart: t("nav.cart"),
+  map: t("nav.map"),
+  login: t("nav.login"),
+  profile: t("nav.menu.profile"),
+  logout: t("nav.menu.logout"),
+  store: t("profile.sidebar.store"),
+  greeting: t("nav.menu.greeting"),
+  themeDark: t("nav.themeDark"),
+  themeLight: t("nav.themeLight"),
+  language: t("nav.language"),
+  menuTitle: t("nav.menuTitle"),
+};
+---
+
+{
+  hidden ? (
+    <Fragment />
+  ) : (
+    <Fragment>
+      <!-- ========================================================================
+     MOBILE TOP HEADER (solo en <md)
+     ======================================================================== -->
+      <header class="md:hidden sticky top-0 z-40 bg-blanco/95 backdrop-blur-md border-b border-borde px-4 py-3 flex items-center justify-between shadow-xs">
+        <a
+          href={l("/productos")}
+          class="p-1.5 -ml-1 text-primary hover:text-primary-dark transition-colors"
+          aria-label={t("nav.searchTitle")}
+        >
+          <Icon name="lucide:search" class="text-2xl text-primary" />
+        </a>
+        <a
+          href={l("/")}
+          class="flex items-center gap-2 text-xl font-extrabold text-primary tracking-tight"
+        >
+          <img
+            src="/Logo.png"
+            alt="ArtesaNica Logo"
+            class="h-8 w-auto object-contain dark:hidden"
+          />
+          <img
+            src="/Logo Blanco.png"
+            alt="ArtesaNica Logo"
+            class="h-8 w-auto object-contain hidden dark:block"
+          />
+          <span>ArtesáNica</span>
+        </a>
+        <a
+          href={switchHref}
+          class="px-2 py-0.5 text-xs font-bold uppercase rounded border border-borde text-texto bg-fondo hover:text-primary transition-colors"
+        >
+          {otherLang}
+        </a>
+      </header>
+
+      <!-- ========================================================================
+     DESKTOP NAV (oculto en mobile)
+     ======================================================================== -->
+<header class="hidden md:block bg-blanco shadow-nav sticky top-0 z-40">
+  <nav
+    class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-6"
+  >
+    <a
+      href={l("/")}
+      id="logo-link"
+      class="flex items-center gap-2.5 text-2xl font-bold text-primary group"
+      title={t("nav.brandTitle")}
+    >
+      <img
+        src="/Logo.png"
+        alt="ArtesaNica Logo"
+        class="h-10 w-auto object-contain dark:hidden"
+      />
+      <img
+        src="/Logo Blanco.png"
+        alt="ArtesaNica Logo"
+        class="h-10 w-auto object-contain hidden dark:block"
+      />
+      <span class="font-extrabold tracking-tight text-primary">ArtesaNica</span>
+    </a>
+
+    <div class="flex items-center gap-10">
+      <a
+        href={l("/productos")}
+        id="desktop-buscar"
+        class="relative flex flex-col items-center text-texto hover:text-primary transition-colors px-1"
+        title={t("nav.searchTitle")}
+      >
+        <Icon name="lucide:search" class="text-2xl mb-1" />
+        <span class="text-sm font-medium">{t("nav.products")}</span>
+      </a>
+      <a
+        href={l("/noticias")}
+        id="desktop-noticias"
+        class="relative flex flex-col items-center text-texto hover:text-primary transition-colors px-1"
+        title={t("nav.newsTitle")}
+      >
+        <Icon name="lucide:newspaper" class="text-2xl mb-1" />
+        <span class="text-sm font-medium">{t("nav.news")}</span>
+      </a>
+
+      <a
+        href={l("/mapa")}
+        id="desktop-mapa"
+        class="relative flex flex-col items-center text-texto hover:text-primary transition-colors px-1"
+        title={t("nav.map")}
+      >
+        <Icon name="lucide:map" class="text-2xl mb-1" />
+        <span class="text-sm font-medium">{t("nav.map")}</span>
+      </a>
+
+      <LanguageDropdown
+        client:load
+        currentLang={lang}
+        currentPathname={Astro.url.pathname}
+        search={Astro.url.search}
+        variant="desktop"
+        label={t("nav.language")}
+      />
+
+      <!-- Toggle dark/light mode (desktop) -->
+      <button
+        type="button"
+        id="theme-toggle-desktop"
+        class="relative flex flex-col items-center text-texto hover:text-primary transition-colors px-1"
+        title={t("nav.themeDark")}
+        aria-label={t("nav.themeDark")}
+      >
+        <Icon name="lucide:sun" class="text-2xl mb-1 hidden dark:block" aria-hidden="true" />
+        <Icon name="lucide:moon" class="text-2xl mb-1 block dark:hidden" aria-hidden="true" />
+        <span class="text-sm font-medium theme-label-desktop">Dark</span>
+      </button>
+
+      <a
+        href={l("/carrito")}
+        id="desktop-carrito"
+        class="relative flex flex-col items-center text-texto hover:text-primary transition-colors px-1"
+        title={t("nav.cartTitle")}
+      >
+        <Icon name="lucide:shopping-cart" class="text-2xl mb-1" />
+        <span class="text-sm font-medium">{t("nav.cart")}</span>
+        <span
+          id="cart-counter"
+          class="hidden absolute top-0 right-0 bg-primary text-white text-xs rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1 font-bold shadow-nav"
+          >0</span
+        >
+      </a>
+
+      <!-- Slot auth-aware: renderiza "Entrar" (CTA) o Avatar+Dropdown.
+           client:only="react" (no client:load): el estado de auth vive en
+           un nanostore que se hidrata despues del primer render via
+           /api/auth/me. Si SSReamos el componente, el server siempre ve
+           authUser=null y renderiza el <a> "Entrar", pero el cliente ya
+           tiene la sesion en el store y quiere el DropdownMenu -> hydration
+           mismatch. client:only evita SSR del island; un placeholder del
+           mismo tamaño evita layout shift mientras React monta. -->
+      <HeaderAuthMenu
+        client:only="react"
+        variant="desktop"
+        lang={lang}
+        labels={authLabels}
+      >
+        <div
+          slot="fallback"
+          aria-hidden="true"
+          class="h-9 w-24 bg-fondo rounded-md animate-pulse"
+        />
+      </HeaderAuthMenu>
+    </div>
+  </nav>
+</header>
+
+<!-- MOBILE NAV — Bottom bar simple y limpio (solo mobile) -->
+<nav
+  class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-blanco border-t border-borde shadow-modal pb-[env(safe-area-inset-bottom)]"
+  aria-label={t("nav.mobileNav")}
+>
+  <ul class="flex items-center justify-around h-16 px-2 max-w-md mx-auto">
+    {
+      navItems.map((item, idx) => (
+        <li class="flex-1 list-none">
+          <a
+            href={item.href}
+            class={`flex flex-col items-center justify-center py-1 transition-all duration-300 relative ${
+              idx === activeIndex
+                ? "text-primary"
+                : "text-texto-secundario hover:text-texto"
+            }`}
+            title={item.label}
+            aria-label={item.label}
+            aria-current={idx === activeIndex ? "page" : undefined}
+          >
+            {/* Contenedor del icono con píldora de fondo (estilo Material Design 3) */}
+            <div class="relative w-12 h-8 flex items-center justify-center rounded-full transition-all duration-300">
+              {idx === activeIndex && (
+                <span class="absolute inset-0 bg-primary/10 rounded-full -z-10 animate-fade-in" />
+              )}
+              <Icon
+                name={item.icon}
+                class={`text-lg ${idx === activeIndex ? "text-primary" : "text-texto-secundario"}`}
+              />
+              {item.counterId && (
+                <span
+                  id={item.counterId}
+                  class="hidden absolute -top-1 -right-1 bg-primary text-white text-[9px] rounded-full min-w-[15px] h-[15px] flex items-center justify-center px-0.5 font-bold z-30"
+                >
+                  0
+                </span>
+              )}
+            </div>
+
+            {/* Label de texto fuera de la píldora */}
+            <span
+              class={`text-[10px] font-semibold uppercase tracking-wider leading-none mt-1 ${idx === activeIndex ? "text-primary block" : "text-texto-secundario hidden"}`}
+            >
+              {item.label}
+            </span>
+          </a>
+        </li>
+      ))
+    }
+    {/* 5to item: Menú Drawer deslizable (isla React) */}
+    <li class="flex-1 list-none flex items-center justify-center">
+      <HeaderMobileDrawer
+        client:only="react"
+        lang={lang}
+        otherLang={otherLang}
+        switchHref={switchHref}
+        currentPathname={Astro.url.pathname}
+        search={Astro.url.search}
+        labels={drawerLabels}
+      >
+        <div
+          slot="fallback"
+          aria-hidden="true"
+          class="size-8 rounded-full bg-fondo animate-pulse"
+        />
+      </HeaderMobileDrawer>
+    </li>
+  </ul>
+</nav>
+    </Fragment>
+  )
+}
+
+<script>
+  import { cartCount, syncCartFromBackend } from "../lib/stores/cart";
+  import { refreshAuth } from "../lib/stores/auth";
+
+  let unsubscribeCart: (() => void) | null = null;
+
+  function initHeader() {
+    const counterEl = document.getElementById("cart-counter");
+    const counterMobileEl = document.getElementById("cart-counter-mobile");
+
+    // ====================================================================
+    // Theme toggle (light/dark). Sincroniza desktop y mobile.
+    // View Transition API: revela el nuevo tema con un clip-path radial
+    // desde el punto del click. Firefox degrada a switch instantaneo.
+    // ====================================================================
+    const STORAGE_KEY = "artesa-theme";
+    const root = document.documentElement;
+    const desktopBtn = document.getElementById("theme-toggle-desktop");
+    const mobileBtn = document.getElementById("theme-toggle-mobile");
+
+    function currentTheme(): "light" | "dark" {
+      return root.classList.contains("dark") ? "dark" : "light";
+    }
+
+    /** Aplica el cambio de tema al DOM. No anima. */
+    function applyTheme(next: "light" | "dark") {
+      const labelDesktop = next === "dark" ? "Dark" : "Light";
+      const tooltipLight = desktopBtn?.getAttribute("data-tooltip-light") || "";
+      const tooltipDark = desktopBtn?.getAttribute("data-tooltip-dark") || "";
+      const nextTooltip = next === "dark" ? tooltipLight : tooltipDark;
+
+      if (next === "dark") root.classList.add("dark");
+      else root.classList.remove("dark");
+      root.dataset.theme = next;
+
+      try {
+        localStorage.setItem(STORAGE_KEY, next);
+      } catch (_) {}
+
+      // El icono se gestiona via CSS (dark:hidden / dark:block) sobre los
+      // dos <Icon> renderizados en cada boton. Aqui solo actualizamos
+      // label de texto + tooltip/aria-label.
+      const labelEl = document.querySelector<HTMLElement>(
+        ".theme-label-desktop",
+      );
+      if (labelEl) labelEl.textContent = labelDesktop;
+      [desktopBtn, mobileBtn].forEach((btn) => {
+        if (!btn) return;
+        btn.setAttribute("title", nextTooltip);
+        btn.setAttribute("aria-label", nextTooltip);
+      });
+    }
+
+    /**
+     * Cambia el tema. Si View Transitions esta disponible Y tenemos coords
+     * del click, hace un reveal radial suave. Si no, switch directo.
+     */
+    function setTheme(
+      next: "light" | "dark",
+      originX?: number,
+      originY?: number,
+    ) {
+      const useVT =
+        typeof document.startViewTransition === "function" &&
+        typeof originX === "number" &&
+        typeof originY === "number";
+
+      if (!useVT) {
+        applyTheme(next);
+        return;
+      }
+
+      // Marca el html para activar las reglas de ::view-transition-* en CSS.
+      // El atributo se limpia al terminar (o por timeout de seguridad).
+      root.dataset.themeTransitioning = "1";
+      root.style.setProperty("--theme-x", `${originX}px`);
+      root.style.setProperty("--theme-y", `${originY}px`);
+
+      let cleaned = false;
+      const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        delete root.dataset.themeTransitioning;
+        root.style.removeProperty("--theme-x");
+        root.style.removeProperty("--theme-y");
+      };
+
+      try {
+        const transition = document.startViewTransition(() => applyTheme(next));
+        transition.finished.finally(cleanup).catch(() => cleanup());
+        // Safety: si el navegador nunca dispara `finished`, limpia tras 1s
+        setTimeout(cleanup, 1000);
+      } catch (_) {
+        // View Transitions rechazo (ej. mid-transition); switch directo
+        cleanup();
+        applyTheme(next);
+      }
+    }
+
+    function bindToggle(btn: HTMLElement | null) {
+      if (!btn || btn.dataset.bound === "1") return;
+      btn.dataset.bound = "1";
+      btn.addEventListener("click", (e: MouseEvent) => {
+        const rect = btn.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+
+        // Micro-rotacion del icono (acknowledge del click). Solo el boton
+        // clickeado gira — el otro se sincroniza via el swap de icono.
+        btn.classList.add("is-spinning");
+        window.setTimeout(() => btn.classList.remove("is-spinning"), 240);
+
+        setTheme(currentTheme() === "dark" ? "light" : "dark", x, y);
+      });
+    }
+
+    // Inicializa iconos segun el tema actual (lo determino el script inline en <head>)
+    (function syncInitialTheme() {
+      // Guardamos los tooltips traducidos en data-* para usarlos en el swap
+      if (desktopBtn) {
+        desktopBtn.setAttribute("data-tooltip-light", desktopBtn.title);
+        desktopBtn.setAttribute("data-tooltip-dark", desktopBtn.title);
+      }
+      // Sin coords -> apply directo (sin animacion, ya esta renderizado)
+      applyTheme(currentTheme());
+      // Persistimos la eleccion del usuario si no estaba guardada
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) localStorage.setItem(STORAGE_KEY, currentTheme());
+      } catch (_) {}
+    })();
+
+    bindToggle(desktopBtn);
+    bindToggle(mobileBtn);
+
+    function updateCartCount() {
+      const count = cartCount.get();
+      const visible = count > 0;
+      if (counterEl) {
+        counterEl.textContent = String(count);
+        counterEl.classList.toggle("hidden", !visible);
+      }
+      if (counterMobileEl) {
+        counterMobileEl.textContent = String(count);
+        counterMobileEl.classList.toggle("hidden", !visible);
+      }
+    }
+
+    if (unsubscribeCart) unsubscribeCart();
+
+    unsubscribeCart = cartCount.subscribe(updateCartCount);
+
+    updateCartCount();
+  }
+
+  document.addEventListener("astro:page-load", async () => {
+    initHeader();
+    await refreshAuth();
+    await syncCartFromBackend();
+  });
+</script>

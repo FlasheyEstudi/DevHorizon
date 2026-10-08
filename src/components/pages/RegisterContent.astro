@@ -1,0 +1,394 @@
+---
+// =============================================================================
+// RegisterContent.astro — Form de registro con split layout.
+// =============================================================================
+// Rediseño v2 (mismo patron visual que LoginContent):
+//   - Panel izquierdo: foto full-screen + filtro verde + brand + headline.
+//   - Form derecho: H1 grande + Google slot + divider + campos con icono
+//     adentro (user/mail/lock/key-round) + submit plano.
+//   - passwordConfirm con validacion inline (mismatch message).
+// =============================================================================
+
+import { useTranslations, localizePath } from "../../i18n/utils";
+import type { Lang } from "../../i18n/ui";
+import { Icon } from "astro-icon/components";
+import AuthPanel from "../auth/AuthPanel.astro";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const l = (path: string) => localizePath(path, lang);
+---
+
+<section class="relative min-h-screen bg-fondo">
+  <div class="min-h-screen flex w-full">
+    <AuthPanel
+      lang={lang}
+      taglineKey="auth.register.tagline"
+      imageAltKey="auth.register.imageAlt"
+    />
+
+    <div
+      class="w-full lg:w-1/2 flex items-center justify-center px-4 py-10 md:py-16"
+    >
+      <div class="w-full max-w-md auth-anim-form">
+        <!-- Mobile logo -->
+        <div class="lg:hidden mb-8 flex justify-center">
+          <a
+            href={l("/")}
+            class="flex items-center gap-2.5 text-2xl font-bold text-primary"
+          >
+            <img
+              src="/Logo.png"
+              alt="ArtesaNica Logo"
+              class="h-10 w-auto object-contain dark:hidden"
+            />
+            <img
+              src="/Logo Blanco.png"
+              alt="ArtesaNica Logo"
+              class="h-10 w-auto object-contain hidden dark:block"
+            />
+            <span>ArtesáNica</span>
+          </a>
+        </div>
+
+        <h1 class="text-3xl lg:text-4xl font-bold text-texto text-center mb-2">
+          {t("auth.register.h1")}
+        </h1>
+        <p class="text-texto-secundario text-center mb-8 text-sm">
+          {t("auth.register.subtitle")}
+        </p>
+
+        <!-- Google button slot (placeholder) -->
+        <button
+          type="button"
+          onclick="alert('Próximamente — autenticación con Google')"
+          class="w-full flex items-center justify-center gap-3 px-6 py-3 border border-borde rounded-lg bg-blanco text-texto font-medium hover:bg-fondo focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors"
+        >
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 48 48" aria-hidden="true">
+            <path
+              fill="#4285F4"
+              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+            ></path>
+            <path
+              fill="#34A853"
+              d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+            ></path>
+            <path
+              fill="#FBBC05"
+              d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+            ></path>
+            <path
+              fill="#EA4335"
+              d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+            ></path>
+          </svg>
+          <span>{t("auth.continueWithGoogle")}</span>
+        </button>
+
+        <div class="flex items-center gap-3 my-6">
+          <div class="flex-1 h-px bg-borde"></div>
+          <span
+            class="text-xs text-texto-secundario uppercase tracking-wider whitespace-nowrap"
+          >
+            {t("auth.orContinueWithEmail")}
+          </span>
+          <div class="flex-1 h-px bg-borde"></div>
+        </div>
+
+        <form
+          id="register-form"
+          method="post"
+          novalidate
+          class="flex flex-col gap-4"
+        >
+          <div class="flex flex-col gap-1.5">
+            <label for="register-name" class="text-sm font-medium text-texto">
+              {t("auth.register.name")}
+            </label>
+            <div class="relative">
+              <Icon
+                name="lucide:user"
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-texto-secundario text-lg pointer-events-none"
+                aria-hidden="true"
+              />
+              <input
+                id="register-name"
+                type="text"
+                name="name"
+                autocomplete="name"
+                placeholder="Tu nombre"
+                class="w-full pl-11 pr-4 py-2.5 border border-borde rounded-lg bg-blanco text-texto placeholder:text-texto-secundario focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="register-email" class="text-sm font-medium text-texto">
+              {t("auth.login.email")}
+            </label>
+            <div class="relative">
+              <Icon
+                name="lucide:mail"
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-texto-secundario text-lg pointer-events-none"
+                aria-hidden="true"
+              />
+              <input
+                id="register-email"
+                type="email"
+                name="email"
+                required
+                autocomplete="email"
+                placeholder="tu@email.com"
+                class="w-full pl-11 pr-4 py-2.5 border border-borde rounded-lg bg-blanco text-texto placeholder:text-texto-secundario focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label
+              for="register-password"
+              class="text-sm font-medium text-texto"
+            >
+              {t("auth.register.passwordHint")}
+            </label>
+            <div class="relative">
+              <Icon
+                name="lucide:lock"
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-texto-secundario text-lg pointer-events-none"
+                aria-hidden="true"
+              />
+              <input
+                id="register-password"
+                type="password"
+                name="password"
+                required
+                minlength="8"
+                autocomplete="new-password"
+                placeholder="••••••••"
+                class="w-full pl-11 pr-11 py-2.5 border border-borde rounded-lg bg-blanco text-texto focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+              />
+              <button
+                type="button"
+                data-toggle-password="register-password"
+                aria-label={t("auth.showPassword")}
+                aria-pressed="false"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-texto-secundario hover:text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+              >
+                <Icon name="lucide:eye" class="text-lg" data-eye />
+                <Icon
+                  name="lucide:eye-off"
+                  class="text-lg hidden"
+                  data-eye-off
+                />
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label
+              for="register-password-confirm"
+              class="text-sm font-medium text-texto"
+            >
+              {t("auth.register.passwordConfirm")}
+            </label>
+            <div class="relative">
+              <Icon
+                name="lucide:key-round"
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-texto-secundario text-lg pointer-events-none"
+                aria-hidden="true"
+              />
+              <input
+                id="register-password-confirm"
+                type="password"
+                name="passwordConfirm"
+                required
+                minlength="8"
+                autocomplete="new-password"
+                placeholder="••••••••"
+                class="w-full pl-11 pr-11 py-2.5 border border-borde rounded-lg bg-blanco text-texto focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+              />
+              <button
+                type="button"
+                data-toggle-password="register-password-confirm"
+                aria-label={t("auth.showPassword")}
+                aria-pressed="false"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-texto-secundario hover:text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+              >
+                <Icon name="lucide:eye" class="text-lg" data-eye />
+                <Icon
+                  name="lucide:eye-off"
+                  class="text-lg hidden"
+                  data-eye-off
+                />
+              </button>
+            </div>
+            <p
+              id="register-password-mismatch"
+              role="alert"
+              aria-live="polite"
+              class="hidden auth-anim-pop text-xs text-error flex items-center gap-1 mt-1"
+            >
+              <Icon name="lucide:alert-circle" class="text-sm shrink-0" />
+              <span>{t("auth.error.passwordMismatch")}</span>
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            id="register-submit"
+            class="mt-2 w-full bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+          >
+            <span data-label>{t("auth.register.submit")}</span>
+            <Icon
+              name="lucide:loader-circle"
+              class="text-lg animate-spin hidden"
+              data-spinner
+              aria-hidden="true"
+            />
+          </button>
+
+          <p
+            id="register-error"
+            role="alert"
+            aria-live="polite"
+            class="hidden text-error text-sm mt-2 flex items-center gap-1"
+          >
+            <Icon name="lucide:alert-circle" class="text-base shrink-0" />
+            <span data-message></span>
+          </p>
+        </form>
+
+        <p class="text-center mt-8 text-sm text-texto-secundario">
+          {t("auth.register.haveAccount")}
+          <a
+            href={l("/login")}
+            class="text-primary hover:text-primary-dark font-medium ml-1"
+          >
+            {t("auth.register.loginLink")}
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { getLangFromUrl, localizePath } from "../../i18n/utils";
+  import { ui } from "../../i18n/ui";
+  import type { Lang } from "../../i18n/ui";
+  import { csrfHeaders } from "../../lib/csrf-client";
+
+  function initRegisterForm() {
+    const form = document.getElementById(
+      "register-form",
+    ) as HTMLFormElement | null;
+    const errorEl = document.getElementById(
+      "register-error",
+    ) as HTMLParagraphElement | null;
+    const submit = document.getElementById(
+      "register-submit",
+    ) as HTMLButtonElement | null;
+    if (!form || !errorEl || !submit) return;
+
+    const labelEl = submit.querySelector("[data-label]") as HTMLElement | null;
+    const spinnerEl = submit.querySelector(
+      "[data-spinner]",
+    ) as HTMLElement | null;
+    const messageEl = errorEl.querySelector(
+      "[data-message]",
+    ) as HTMLElement | null;
+    const mismatchEl = document.getElementById(
+      "register-password-mismatch",
+    ) as HTMLElement | null;
+    if (!labelEl || !spinnerEl || !messageEl || !mismatchEl) return;
+
+    const lang: Lang = getLangFromUrl(new URL(window.location.href));
+    const showLabel = ui[lang]["auth.showPassword"];
+    const hideLabel = ui[lang]["auth.hidePassword"];
+    const networkErr = ui[lang]["auth.error.networkError"];
+
+    document
+      .querySelectorAll<HTMLButtonElement>("[data-toggle-password]")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const input = document.getElementById(
+            btn.dataset.togglePassword || "",
+          ) as HTMLInputElement | null;
+          if (!input) return;
+          const showing = input.type === "text";
+          input.type = showing ? "password" : "text";
+          btn.querySelector("[data-eye]")?.classList.toggle("hidden", !showing);
+          btn
+            .querySelector("[data-eye-off]")
+            ?.classList.toggle("hidden", showing);
+          btn.setAttribute("aria-label", showing ? showLabel : hideLabel);
+          btn.setAttribute("aria-pressed", String(!showing));
+        });
+      });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorEl.classList.add("hidden");
+      messageEl.textContent = "";
+      mismatchEl.classList.add("hidden");
+
+      const fd = new FormData(form);
+      const payload = {
+        email: String(fd.get("email") ?? ""),
+        password: String(fd.get("password") ?? ""),
+        passwordConfirm: String(fd.get("passwordConfirm") ?? ""),
+        name: String(fd.get("name") ?? ""),
+      };
+
+      if (payload.password !== payload.passwordConfirm) {
+        mismatchEl.classList.remove("hidden");
+        const confirmInput = document.getElementById(
+          "register-password-confirm",
+        ) as HTMLInputElement | null;
+        confirmInput?.focus();
+        return;
+      }
+
+      submit.disabled = true;
+      submit.setAttribute("aria-busy", "true");
+      labelEl.classList.add("hidden");
+      spinnerEl.classList.remove("hidden");
+
+      try {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Origin: window.location.origin,
+            ...csrfHeaders(),
+          },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Error" }));
+          throw new Error(err.error || "Error");
+        }
+        window.location.href = localizePath("", lang);
+      } catch (err) {
+        messageEl.textContent = err instanceof Error ? err.message : networkErr;
+        errorEl.classList.remove("hidden");
+      } finally {
+        submit.disabled = false;
+        submit.removeAttribute("aria-busy");
+        labelEl.classList.remove("hidden");
+        spinnerEl.classList.add("hidden");
+      }
+    });
+  }
+
+  // Inicializar en carga directa y en navegaciones SPA (ClientRouter).
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initRegisterForm);
+  } else {
+    initRegisterForm();
+  }
+  document.addEventListener("astro:page-load", initRegisterForm);
+</script>

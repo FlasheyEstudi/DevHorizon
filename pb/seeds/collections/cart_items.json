@@ -1,0 +1,32 @@
+[
+  {
+    "_key": "luis-olla",
+    "_userRef": "luis",
+    "_productRef": "olla-barro-tradicional",
+    "quantity": 2
+  },
+  {
+    "_key": "luis-collar",
+    "_userRef": "luis",
+    "_productRef": "collar-piedra-volcanica",
+    "quantity": 1
+  },
+  {
+    "_key": "ana-mochila",
+    "_userRef": "ana_buyer",
+    "_productRef": "mochila-cuero-viajero",
+    "quantity": 1
+  },
+  {
+    "_key": "diego-rebozo",
+    "_userRef": "diego_buyer",
+    "_productRef": "rebozo-indigo",
+    "quantity": 1
+  },
+  {
+    "_key": "carmen-cuenco",
+    "_userRef": "carmen_buyer",
+    "_productRef": "cuenco-negro-chico",
+    "quantity": 4
+  }
+]

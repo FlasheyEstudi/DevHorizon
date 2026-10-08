@@ -1,0 +1,26 @@
+User-agent: *
+Allow: /
+
+# Private, authenticated and transactional routes
+Disallow: /api/
+Disallow: /perfil
+Disallow: /perfil/
+Disallow: /carrito
+Disallow: /carrito/
+Disallow: /orden/
+Disallow: /en/perfil
+Disallow: /en/perfil/
+Disallow: /en/carrito
+Disallow: /en/carrito/
+Disallow: /en/orden/
+Disallow: /login
+Disallow: /registro
+Disallow: /recuperar
+Disallow: /restablecer
+Disallow: /en/login
+Disallow: /en/registro
+Disallow: /en/recuperar
+Disallow: /en/restablecer
+
+# Sitemap
+Sitemap: https://artesanica.ni/sitemap.xml

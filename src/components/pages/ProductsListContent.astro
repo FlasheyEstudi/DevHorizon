@@ -1,0 +1,772 @@
+---
+// =============================================================================
+// ProductsListContent.astro — Dynamic catalog with advanced filters.
+// =============================================================================
+// Supports filtering by:
+//   - Departamento de origen (store.department in Masaya, Granada, León, etc.)
+//   - Rango de precios (price >= min && price <= max) + quick price presets
+//   - Ordenación (más recientes, precio asc/desc, nombre)
+//   - Búsqueda por texto (nombre / descripción)
+//   - Categoría existente (?categoria=slug)
+//
+// All filters persist cleanly as GET search parameters for SEO and shareability.
+// =============================================================================
+
+import { pbFileUrl, pocketbaseFor, getPocketBaseUrl } from '../../lib/pocketbase';
+import { useTranslations, localizePath } from '../../i18n/utils';
+import type { Lang } from '../../i18n/ui';
+import type { RecordModel } from 'pocketbase';
+import { Icon } from 'astro-icon/components';
+import { DEPARTMENTS, type Department } from '../../lib/geo';
+import DepartmentSelect from '../catalog/DepartmentSelect';
+import SortSelect from '../catalog/SortSelect';
+
+interface Props {
+  lang: Lang;
+  url: URL;
+}
+
+const { lang, url } = Astro.props;
+const t = useTranslations(lang);
+const l = (path: string) => localizePath(path, lang);
+
+await getPocketBaseUrl();
+const pbClient = Astro.locals.pb ?? pocketbaseFor(Astro.request);
+
+// -----------------------------------------------------------------------------
+// 1. Extraer y validar parámetros de la URL
+// -----------------------------------------------------------------------------
+const searchParams = url.searchParams;
+const categoria = searchParams.get('categoria')?.trim() || null;
+const departamento = searchParams.get('departamento')?.trim() || null;
+const minRaw = searchParams.get('min')?.trim() || null;
+const maxRaw = searchParams.get('max')?.trim() || null;
+const sortParam = searchParams.get('sort')?.trim() || '-created_at';
+const searchQuery = searchParams.get('q')?.trim() || null;
+
+const minPrice = minRaw !== null && !isNaN(Number(minRaw)) && Number(minRaw) >= 0 ? Number(minRaw) : null;
+const maxPrice = maxRaw !== null && !isNaN(Number(maxRaw)) && Number(maxRaw) > 0 ? Number(maxRaw) : null;
+
+const validSorts = ['-created_at', 'price', '-price', 'name'];
+const sortField = validSorts.includes(sortParam) ? sortParam : '-created_at';
+
+// -----------------------------------------------------------------------------
+// 2. Construir la consulta PocketBase con filtros dinámicos
+// -----------------------------------------------------------------------------
+const filters: string[] = ['status = "published"'];
+
+if (categoria) {
+  filters.push(`(category_slug = "${categoria}" || store_category = "${categoria}")`);
+}
+
+if (departamento && departamento !== 'all' && (DEPARTMENTS as readonly string[]).includes(departamento)) {
+  filters.push(`store_department = "${departamento}"`);
+}
+
+if (minPrice !== null) {
+  filters.push(`price >= ${minPrice}`);
+}
+
+if (maxPrice !== null) {
+  filters.push(`price <= ${maxPrice}`);
+}
+
+if (searchQuery) {
+  const safeQ = searchQuery.replace(/"/g, '\\"');
+  filters.push(`(name ~ "${safeQ}" || description ~ "${safeQ}" || store_name ~ "${safeQ}")`);
+}
+
+interface CategoryRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  icon?: string;
+  total_products?: number;
+  total_stores?: number;
+  min_price?: number;
+  max_price?: number;
+  avg_price?: number;
+}
+
+interface StoreRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  department?: string;
+}
+
+interface ProductRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  description?: string;
+  price?: number;
+  stock?: number;
+  images?: string[];
+  store?: string;
+  store_name?: string;
+  store_slug?: string;
+  store_department?: string;
+  store_category?: string;
+  category_name?: string;
+  category_slug?: string;
+  category_icon?: string;
+  rating_avg?: number;
+  rating_count?: number;
+  categories?: string[];
+  expand?: {
+    store?: StoreRecord;
+    categories?: CategoryRecord[];
+  };
+}
+
+let products: ProductRecord[] = [];
+let allCategories: CategoryRecord[] = [];
+let totalProducts = 0;
+let fetchError = false;
+
+try {
+  const [prodRes, catRes] = await Promise.all([
+    pbClient.collection('view_products_catalog').getList<ProductRecord>(1, 60, {
+      sort: sortField,
+      filter: filters.join(' && '),
+    }).catch(async (viewErr) => {
+      console.warn('view_products_catalog fetch failed, falling back to products collection:', viewErr);
+      const fallbackFilters: string[] = ['status = "published"'];
+      if (categoria) fallbackFilters.push(`categories.slug ?~ "${categoria}"`);
+      if (departamento && departamento !== 'all' && (DEPARTMENTS as readonly string[]).includes(departamento)) {
+        fallbackFilters.push(`store.department = "${departamento}"`);
+      }
+      if (minPrice !== null) fallbackFilters.push(`price >= ${minPrice}`);
+      if (maxPrice !== null) fallbackFilters.push(`price <= ${maxPrice}`);
+      if (searchQuery) {
+        const safeQ = searchQuery.replace(/"/g, '\\"');
+        fallbackFilters.push(`(name ~ "${safeQ}" || description ~ "${safeQ}")`);
+      }
+      return pbClient.collection('products').getList<ProductRecord>(1, 60, {
+        sort: sortField,
+        filter: fallbackFilters.join(' && '),
+        expand: 'store,categories',
+      });
+    }),
+    pbClient.collection('view_category_stats').getFullList<CategoryRecord>({
+      filter: 'total_products > 0',
+      sort: '-total_products',
+    }).catch(async (viewErr) => {
+      console.warn('view_category_stats fetch failed, falling back to categories collection:', viewErr);
+      return pbClient.collection('categories').getFullList<CategoryRecord>({
+        sort: 'name',
+      });
+    }),
+  ]);
+  products = prodRes.items;
+  totalProducts = prodRes.totalItems;
+  allCategories = catRes;
+} catch (err) {
+  console.error('Error fetching filtered products and categories:', err);
+  fetchError = true;
+}
+
+const currentCategoryObj = allCategories.find((c) => c.slug === categoria);
+const currentCategoryName = currentCategoryObj?.name || categoria;
+
+// -----------------------------------------------------------------------------
+// Conteos de productos por departamento calculados de forma segura
+// -----------------------------------------------------------------------------
+const deptCounts: Record<string, number> = {};
+for (const p of products) {
+  const dept = p.store_department ?? p.expand?.store?.department;
+  if (dept) {
+    deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+  }
+}
+
+function productImageUrl(p: ProductRecord): string | null {
+  if (p.images && p.images.length > 0) {
+    return pbFileUrl('products', p.id, p.images[0]);
+  }
+  return null;
+}
+
+// -----------------------------------------------------------------------------
+// 3. Helper para generar URLs con filtros modificados o eliminados
+// -----------------------------------------------------------------------------
+function filterUrl(overrides: Record<string, string | number | null | undefined>): string {
+  const next = new URL(url);
+  for (const [key, val] of Object.entries(overrides)) {
+    if (val === null || val === undefined || val === '') {
+      next.searchParams.delete(key);
+    } else {
+      next.searchParams.set(key, String(val));
+    }
+  }
+  return `${next.pathname}${next.search}`;
+}
+
+const hasActiveFilters = Boolean(
+  departamento || minPrice !== null || maxPrice !== null || searchQuery || categoria
+);
+
+const pricePresets = [
+  { label: 'Hasta C$ 250', min: null, max: 250 },
+  { label: 'C$ 250 - C$ 500', min: 250, max: 500 },
+  { label: 'C$ 500 - C$ 1,500', min: 500, max: 1500 },
+  { label: 'Más de C$ 1,500', min: 1500, max: null },
+];
+
+const sortOptions = [
+  { value: '-created_at', label: t('catalog.filters.sortNewest') },
+  { value: 'price', label: t('catalog.filters.sortPriceAsc') },
+  { value: '-price', label: t('catalog.filters.sortPriceDesc') },
+  { value: 'name', label: t('catalog.filters.sortNameAsc') },
+];
+---
+
+<section class="py-8 md:py-12 bg-fondo min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Encabezado de página -->
+    <div class="mb-8">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-borde pb-6">
+        <div>
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary mb-2">
+            <Icon name="lucide:package-open" class="size-4" />
+            Nicaragua Hecha a Mano
+          </span>
+          <h1 class="text-3xl sm:text-4xl font-extrabold text-texto tracking-tight">
+            {categoria ? `${t('pages.products.titleFiltered')} "${currentCategoryName}"` : t('catalog.title')}
+          </h1>
+          <p class="text-sm sm:text-base text-texto-secundario mt-1.5 max-w-2xl">
+            {t('catalog.subtitle')}
+          </p>
+        </div>
+
+        <!-- Barra de búsqueda principal integrada -->
+        <form method="GET" action={l('/productos')} class="w-full md:w-80 flex-shrink-0">
+          {departamento && <input type="hidden" name="departamento" value={departamento} />}
+          {minPrice !== null && <input type="hidden" name="min" value={minPrice} />}
+          {maxPrice !== null && <input type="hidden" name="max" value={maxPrice} />}
+          {sortParam !== '-created_at' && <input type="hidden" name="sort" value={sortParam} />}
+          {categoria && <input type="hidden" name="categoria" value={categoria} />}
+          
+          <div class="relative">
+            <Icon name="lucide:search" class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-texto-secundario pointer-events-none" />
+            <input
+              type="search"
+              name="q"
+              value={searchQuery ?? ''}
+              placeholder={t('catalog.filters.searchPlaceholder')}
+              class="w-full h-11 pl-10 pr-10 text-sm bg-blanco border border-borde rounded-xl text-texto placeholder:text-texto-secundario/70 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary shadow-xs transition"
+            />
+            {searchQuery && (
+              <a
+                href={filterUrl({ q: null })}
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-texto-secundario hover:text-texto p-1"
+                aria-label="Limpiar búsqueda"
+              >
+                <Icon name="lucide:x" class="size-3.5" />
+              </a>
+            )}
+          </div>
+        </form>
+      </div>
+
+      <!-- Barra de Filtro Rápido de Categorías (Pills scrollables) -->
+      {allCategories.length > 0 && (
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-2.5 my-2 border-b border-borde/60">
+          <a
+            href={filterUrl({ categoria: null })}
+            class={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap inline-flex items-center gap-1.5 shadow-2xs ${
+              !categoria
+                ? 'bg-texto text-blanco dark:bg-white dark:text-zinc-900 border border-texto dark:border-white shadow-xs'
+                : 'bg-blanco dark:bg-zinc-900 text-texto-secundario hover:text-texto border border-borde hover:border-primary/40'
+            }`}
+          >
+            <Icon name="lucide:layout-grid" class="size-3.5" />
+            <span>Todas</span>
+          </a>
+          {allCategories.map((c) => {
+            const isActive = categoria === c.slug;
+            return (
+              <a
+                href={filterUrl({ categoria: isActive ? null : c.slug })}
+                class={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all whitespace-nowrap inline-flex items-center gap-1.5 shadow-2xs ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground border border-primary shadow-xs'
+                    : 'bg-blanco dark:bg-zinc-900 text-texto-secundario hover:text-texto border border-borde hover:border-primary/40'
+                }`}
+              >
+                <span>{c.name}</span>
+                {c.total_products !== undefined && (
+                  <span class={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-bold ${
+                    isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-slate-100 dark:bg-zinc-800 text-texto-secundario'
+                  }`}>
+                    {c.total_products}
+                  </span>
+                )}
+              </a>
+            );
+          })}
+        </div>
+      )}
+
+      <!-- Barra de controles móviles / toggle de filtros -->
+      <div class="flex md:hidden items-center justify-between gap-3 mt-4 pt-1">
+        <button
+          type="button"
+          id="mobile-filter-toggle"
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-blanco border border-borde rounded-lg text-sm font-semibold text-texto shadow-xs"
+        >
+          <Icon name="lucide:sliders-horizontal" class="size-4 text-primary" />
+          <span>{t('catalog.filters.mobileFilterToggle')}</span>
+          {hasActiveFilters && (
+            <span class="size-2 rounded-full bg-primary ring-2 ring-blanco"></span>
+          )}
+        </button>
+
+        <div class="flex-1 max-w-[200px]">
+          <SortSelect
+            client:load
+            currentSort={sortField}
+            options={sortOptions}
+            triggerClassName="h-10 text-xs bg-blanco"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor principal: Sidebar Filtros + Grid de Productos -->
+    <div class="flex flex-col lg:flex-row items-start gap-8">
+      
+      <!-- =================================================================== -->
+      <!-- SIDEBAR DE FILTROS (Desktop fija / Móvil colapsable)               -->
+      <!-- =================================================================== -->
+      <aside
+        id="catalog-filters-sidebar"
+        class="w-full lg:w-72 flex-shrink-0 bg-blanco border border-borde rounded-2xl p-5 shadow-xs hidden md:block"
+      >
+        <div class="flex items-center justify-between pb-4 border-b border-borde mb-5">
+          <div class="flex items-center gap-2">
+            <Icon name="lucide:sliders-horizontal" class="size-4 text-primary" />
+            <h2 class="font-bold text-texto text-base">{t('catalog.filters.title')}</h2>
+          </div>
+          {hasActiveFilters && (
+            <a
+              href={l('/productos')}
+              class="text-xs font-semibold text-primary hover:text-primary-dark transition-colors inline-flex items-center gap-1"
+            >
+              <Icon name="lucide:rotate-ccw" class="size-3" />
+              {t('catalog.filters.clearAll')}
+            </a>
+          )}
+        </div>
+
+        <form method="GET" action={l('/productos')} class="space-y-6">
+          {searchQuery && <input type="hidden" name="q" value={searchQuery} />}
+          {sortParam !== '-created_at' && <input type="hidden" name="sort" value={sortParam} />}
+          {categoria && <input type="hidden" name="categoria" value={categoria} />}
+
+          <!-- Filtro: Categorías -->
+          {allCategories.length > 0 && (
+            <div>
+              <div class="flex items-center justify-between mb-2.5">
+                <label class="block text-xs font-bold uppercase tracking-wider text-texto">
+                  {t('profile.products.fields.categories') || 'Categorías'}
+                </label>
+                {categoria && (
+                  <a
+                    href={filterUrl({ categoria: null })}
+                    class="text-[11px] text-primary hover:underline font-semibold"
+                  >
+                    {t('catalog.filters.clearAll') || 'Limpiar'}
+                  </a>
+                )}
+              </div>
+              <div class="space-y-1 max-h-48 overflow-y-auto pr-1 no-scrollbar">
+                {allCategories.map((cat) => {
+                  const isSelected = categoria === cat.slug;
+                  return (
+                    <a
+                      href={filterUrl({ categoria: isSelected ? null : cat.slug })}
+                      class={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        isSelected
+                          ? 'bg-primary/10 text-primary font-bold border border-primary/30 shadow-2xs'
+                          : 'text-texto-secundario hover:text-texto hover:bg-fondo'
+                      }`}
+                    >
+                      <span class="truncate">{cat.name}</span>
+                      <div class="flex items-center gap-1.5 shrink-0">
+                        {cat.total_products !== undefined && (
+                          <span class={`text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full ${
+                            isSelected ? 'bg-primary/20 text-primary' : 'text-texto-secundario bg-slate-100 dark:bg-zinc-800'
+                          }`}>
+                            {cat.total_products}
+                          </span>
+                        )}
+                        {isSelected && <Icon name="lucide:check" class="size-3.5 text-primary shrink-0" />}
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <!-- Filtro: Departamento de origen -->
+          <div class="pt-5 border-t border-borde">
+            <label for="filter-department" class="block text-xs font-bold uppercase tracking-wider text-texto mb-2.5">
+              {t('catalog.filters.department')}
+            </label>
+            <DepartmentSelect
+              client:load
+              departments={DEPARTMENTS}
+              selectedDepartment={departamento}
+              allLabel={t('catalog.filters.allDepartments')}
+              currentUrl={url.toString()}
+              counts={deptCounts}
+              totalCount={totalProducts}
+            />
+
+            <!-- Chips de departamentos más populares como atajos rápidos -->
+            <div class="flex flex-wrap gap-1.5 mt-2.5">
+              {['Masaya', 'Granada', 'León', 'Matagalpa'].map((dept) => {
+                const isActive = departamento === dept;
+                const count = deptCounts[dept];
+                return (
+                  <a
+                    href={filterUrl({ departamento: isActive ? null : dept })}
+                    class={`text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all inline-flex items-center gap-1 ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground shadow-xs'
+                        : 'bg-fondo text-texto-secundario hover:text-texto hover:bg-borde/70'
+                    }`}
+                  >
+                    <span>{dept}</span>
+                    {count !== undefined && count > 0 && (
+                      <span class={`text-[9px] px-1 rounded-full ${isActive ? 'bg-primary-dark text-white' : 'bg-borde text-texto-secundario'}`}>
+                        {count}
+                      </span>
+                    )}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+
+          <!-- Filtro: Rango de precios -->
+          <div class="pt-5 border-t border-borde">
+            <label class="block text-xs font-bold uppercase tracking-wider text-texto mb-2.5">
+              {t('catalog.filters.priceRange')}
+            </label>
+
+            <!-- Presets rápidos -->
+            <div class="space-y-1.5 mb-3.5">
+              {pricePresets.map((preset) => {
+                const isActive = minPrice === preset.min && maxPrice === preset.max;
+                return (
+                  <a
+                    href={filterUrl({ min: isActive ? null : preset.min, max: isActive ? null : preset.max })}
+                    class={`block text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-primary/10 text-primary font-bold border border-primary/30'
+                        : 'text-texto-secundario hover:bg-fondo hover:text-texto'
+                    }`}
+                  >
+                    {preset.label}
+                  </a>
+                );
+              })}
+            </div>
+
+            <!-- Inputs manuales Min y Max -->
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <span class="text-[11px] text-texto-secundario block mb-1">{t('catalog.filters.minPrice')}</span>
+                <div class="relative">
+                  <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-texto-secundario">C$</span>
+                  <input
+                    type="number"
+                    name="min"
+                    min="0"
+                    step="10"
+                    placeholder="0"
+                    value={minPrice ?? ''}
+                    class="w-full pl-8 pr-2 py-1.5 text-xs bg-fondo/80 border border-borde rounded-lg text-texto focus:ring-1 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <span class="text-[11px] text-texto-secundario block mb-1">{t('catalog.filters.maxPrice')}</span>
+                <div class="relative">
+                  <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-texto-secundario">C$</span>
+                  <input
+                    type="number"
+                    name="max"
+                    min="0"
+                    step="10"
+                    placeholder="2500"
+                    value={maxPrice ?? ''}
+                    class="w-full pl-8 pr-2 py-1.5 text-xs bg-fondo/80 border border-borde rounded-lg text-texto focus:ring-1 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full py-2 bg-primary hover:bg-primary-dark text-primary-foreground font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              {t('catalog.filters.applyPrice')}
+            </button>
+          </div>
+
+          <!-- Botón de reset general si hay filtros activos -->
+          {hasActiveFilters && (
+            <div class="pt-4 border-t border-borde">
+              <a
+                href={l('/productos')}
+                class="block w-full py-2 text-center text-xs font-semibold text-error hover:bg-error/10 border border-error/30 rounded-xl transition-colors"
+              >
+                {t('catalog.filters.clearAll')}
+              </a>
+            </div>
+          )}
+        </form>
+      </aside>
+
+      <!-- =================================================================== -->
+      <!-- RESULTADOS Y GRID DE PRODUCTOS                                      -->
+      <!-- =================================================================== -->
+      <main class="flex-1 w-full min-w-0">
+        
+        <!-- Barra de estado de resultados y ordenación (Desktop) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-blanco/80 backdrop-blur-xs border border-borde/70 rounded-xl p-3.5 shadow-xs">
+          <div class="text-sm text-texto font-medium">
+            <span class="font-extrabold text-primary text-base">{totalProducts}</span> {t('catalog.filters.resultsCount')}
+          </div>
+
+          <!-- Selector de Ordenación (Desktop) -->
+          <div class="hidden md:flex items-center gap-2">
+            <span class="text-xs font-semibold text-texto-secundario whitespace-nowrap">
+              {t('catalog.filters.sortBy')}:
+            </span>
+            <SortSelect
+              client:load
+              currentSort={sortField}
+              options={sortOptions}
+              className="min-w-[190px]"
+            />
+          </div>
+        </div>
+
+        <!-- Badges de filtros activos (chips con X para remover uno a uno) -->
+        {hasActiveFilters && (
+          <div class="flex flex-wrap items-center gap-2 mb-6 animate-in fade-in duration-200">
+            <span class="text-xs font-semibold text-texto-secundario">
+              {t('catalog.filters.activeFilters')}
+            </span>
+
+            {departamento && (
+              <a
+                href={filterUrl({ departamento: null })}
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-secondary/10 text-secondary border border-secondary/25 hover:bg-secondary/20 transition-colors"
+                title="Quitar filtro de departamento"
+              >
+                <Icon name="lucide:map-pin" class="size-3" />
+                <span>{departamento}</span>
+                <Icon name="lucide:x" class="size-3" />
+              </a>
+            )}
+
+            {(minPrice !== null || maxPrice !== null) && (
+              <a
+                href={filterUrl({ min: null, max: null })}
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
+                title="Quitar filtro de precio"
+              >
+                <span>
+                  {minPrice !== null && maxPrice !== null
+                    ? `C$ ${minPrice} - C$ ${maxPrice}`
+                    : minPrice !== null
+                    ? `Desde C$ ${minPrice}`
+                    : `Hasta C$ ${maxPrice}`}
+                </span>
+                <Icon name="lucide:x" class="size-3" />
+              </a>
+            )}
+
+            {searchQuery && (
+              <a
+                href={filterUrl({ q: null })}
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
+                title="Quitar filtro de búsqueda"
+              >
+                <span>"{searchQuery}"</span>
+                <Icon name="lucide:x" class="size-3" />
+              </a>
+            )}
+
+            {categoria && (
+              <a
+                href={filterUrl({ categoria: null })}
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-tertiary/15 text-texto border border-tertiary/30 hover:bg-tertiary/25 transition-colors"
+                title="Quitar filtro de categoría"
+              >
+                <span>{currentCategoryName}</span>
+                <Icon name="lucide:x" class="size-3" />
+              </a>
+            )}
+
+            <a
+              href={l('/productos')}
+              class="text-xs font-semibold text-primary hover:underline ml-1"
+            >
+              {t('catalog.filters.clearAll')}
+            </a>
+          </div>
+        )}
+
+        <!-- Grid o Empty State -->
+        {products.length === 0 ? (
+          <div class="bg-blanco rounded-2xl border border-borde p-12 text-center shadow-xs">
+            <div class="size-16 rounded-full bg-primary-light/50 dark:bg-primary-light/20 text-primary flex items-center justify-center mx-auto mb-4">
+              <Icon name="lucide:package-open" class="size-8" />
+            </div>
+            <h3 class="text-xl font-bold text-texto mb-2">
+              {t('catalog.filters.noResultsTitle')}
+            </h3>
+            <p class="text-sm text-texto-secundario max-w-md mx-auto mb-6">
+              {t('catalog.filters.noResultsDesc')}
+            </p>
+            {hasActiveFilters && (
+              <a
+                href={l('/productos')}
+                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary-dark transition shadow-xs cursor-pointer"
+              >
+                <Icon name="lucide:rotate-ccw" class="size-4" />
+                {t('catalog.filters.clearAll')}
+              </a>
+            )}
+          </div>
+        ) : (
+          <div class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+            {products.map((p) => {
+              const img = productImageUrl(p);
+              const storeName = p.store_name ?? p.expand?.store?.name;
+              const storeSlug = p.store_slug ?? p.expand?.store?.slug;
+              const storeDept = p.store_department ?? p.expand?.store?.department;
+              const catName = p.category_name ?? p.expand?.categories?.[0]?.name;
+              const catSlug = p.category_slug ?? p.expand?.categories?.[0]?.slug;
+              const catIcon = p.category_icon;
+              const ratingAvg = p.rating_avg ?? 0;
+              const ratingCount = p.rating_count ?? 0;
+
+              return (
+                <div class="group bg-blanco rounded-2xl border border-borde/70 hover:border-primary/40 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden flex flex-col">
+                  <!-- Imagen del producto con badge de departamento -->
+                  <div class="relative aspect-square overflow-hidden bg-fondo">
+                    <a href={l(`/productos/${p.slug}`)} class="block h-full w-full">
+                      {img ? (
+                        <img
+                          src={img}
+                          alt={p.name ?? 'Artesanía'}
+                          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div class="w-full h-full flex items-center justify-center text-texto-secundario/50 text-4xl">
+                          <Icon name="lucide:image" />
+                        </div>
+                      )}
+                    </a>
+
+                    <!-- Badge de categoría sobre la imagen -->
+                    {catName && (
+                      <a
+                        href={filterUrl({ categoria: catSlug })}
+                        class="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary text-white shadow-xs hover:bg-primary-dark transition"
+                        title={`Filtrar por ${catName}`}
+                      >
+                        {catIcon && <span class="text-xs">{catIcon}</span>}
+                        <span>{catName}</span>
+                      </a>
+                    )}
+
+                    <!-- Badge de departamento sobre la imagen -->
+                    {storeDept && (
+                      <a
+                        href={filterUrl({ departamento: storeDept })}
+                        class="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blanco/95 dark:bg-[#16202e]/95 backdrop-blur-xs text-secondary border border-borde/60 shadow-xs hover:bg-blanco transition"
+                        title={`Ver más artesanías de ${storeDept}`}
+                      >
+                        <Icon name="lucide:map-pin" class="size-3 text-primary" />
+                        <span>{storeDept}</span>
+                      </a>
+                    )}
+                  </div>
+
+                  <!-- Información y precio -->
+                  <div class="p-4 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div class="flex items-center justify-between gap-2 mb-1">
+                        {storeName && (
+                          <a
+                            href={storeSlug ? l(`/tiendas/${storeSlug}`) : '#'}
+                            class="inline-flex items-center gap-1 text-xs text-texto-secundario hover:text-primary transition-colors truncate max-w-[70%]"
+                          >
+                            <Icon name="lucide:store" class="size-3 flex-shrink-0" />
+                            <span class="truncate">{storeName}</span>
+                          </a>
+                        )}
+                        {ratingCount > 0 && (
+                          <span class="inline-flex items-center gap-0.5 text-xs font-bold text-rating flex-shrink-0" title={`${ratingAvg.toFixed(1)} estrellas (${ratingCount} valoraciones)`}>
+                            <Icon name="lucide:star" class="size-3 fill-current text-rating" />
+                            <span>{ratingAvg.toFixed(1)}</span>
+                            <span class="text-[10px] text-texto-secundario font-normal">({ratingCount})</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 class="font-bold text-texto text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                        <a href={l(`/productos/${p.slug}`)}>
+                          {p.name}
+                        </a>
+                      </h3>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-borde/50 flex items-center justify-between">
+                      <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-texto-secundario block">Precio</span>
+                        <span class="text-primary font-extrabold text-lg leading-none">
+                          C$ {p.price?.toFixed(2) ?? '0.00'}
+                        </span>
+                      </div>
+
+                      <a
+                        href={l(`/productos/${p.slug}`)}
+                        class="inline-flex items-center justify-center size-8 rounded-full bg-fondo text-texto hover:bg-primary hover:text-primary-foreground transition-colors"
+                        aria-label={`Ver ${p.name}`}
+                      >
+                        <Icon name="lucide:arrow-up-right" class="size-4" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- Script para toggle en mobile -->
+<script>
+  const toggleBtn = document.getElementById('mobile-filter-toggle');
+  const sidebar = document.getElementById('catalog-filters-sidebar');
+
+  if (toggleBtn && sidebar) {
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('hidden');
+    });
+  }
+</script>

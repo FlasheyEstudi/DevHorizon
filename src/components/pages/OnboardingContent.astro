@@ -1,0 +1,250 @@
+---
+// =============================================================================
+// OnboardingContent.astro — Form for seller to pick workshop location.
+// =============================================================================
+// Mounts the MapPicker React island (client:only) and renders a department
+// select + optional address_text input. Submission is handled by an inline
+// <script> that PATCHes /api/stores/{store.id} with CSRF double-submit.
+//
+// The form is rendered with no client JS framework — pure HTML + a vanilla
+// script tag. This matches the existing RegisterContent.astro pattern.
+// =============================================================================
+
+import { useTranslations } from '../../i18n/utils';
+import type { Lang } from '../../i18n/ui';
+import type { RecordModel } from 'pocketbase';
+import MapPicker from '../maps/MapPicker';
+import { DEPARTMENTS } from '@/lib/geo';
+
+interface StoreRecord extends RecordModel {
+  id: string;
+  name?: string;
+  slug?: string;
+  location?: { lat: number; lon: number } | null;
+  department?: string;
+  address_text?: string;
+}
+
+interface Props {
+  store: StoreRecord;
+  lang: Lang;
+}
+
+const { store, lang } = Astro.props;
+const t = useTranslations(lang);
+
+const initialLoc = store.location ?? null;
+const initialDept = store.department ?? '';
+const initialAddress = store.address_text ?? '';
+const outOfBoundsMsg = t('errors.geoOutOfBounds');
+---
+
+<section class="py-12">
+  <div class="max-w-3xl mx-auto px-4">
+    <h1 class="text-3xl font-bold text-texto mb-2">
+      {t('onboarding.title')}
+    </h1>
+    <p class="text-texto-secundario mb-6">{t('onboarding.intro')}</p>
+
+    <form id="onboarding-form" class="flex flex-col gap-6" novalidate>
+      <div>
+        <p class="text-sm font-medium text-texto mb-2">
+          {t('onboarding.pickLocation')}
+        </p>
+        <MapPicker
+          client:only="react"
+          initialLocation={initialLoc}
+          errorMessage={outOfBoundsMsg}
+        />
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label for="department" class="text-sm font-medium text-texto">
+          {t('onboarding.selectDepartment')}
+        </label>
+        <select
+          id="department"
+          name="department"
+          required
+          class="w-full px-4 py-2.5 border border-borde rounded-lg bg-blanco text-texto focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+        >
+          <option value="" disabled selected={!initialDept}>—</option>
+          {DEPARTMENTS.map((d) => (
+            <option value={d} selected={d === initialDept}>{d}</option>
+          ))}
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label for="address_text" class="text-sm font-medium text-texto">
+          {t('onboarding.addressLabel')}
+        </label>
+        <input
+          id="address_text"
+          name="address_text"
+          type="text"
+          maxlength="500"
+          value={initialAddress}
+          class="w-full px-4 py-2.5 border border-borde rounded-lg bg-blanco text-texto focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+        />
+      </div>
+
+      <button
+        type="submit"
+        id="onboarding-submit"
+        disabled
+        class="w-full bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+      >
+        <span data-label>{t('onboarding.save')}</span>
+      </button>
+
+      <p
+        id="onboarding-error"
+        role="alert"
+        aria-live="polite"
+        class="hidden text-error text-sm flex items-center gap-1"
+      >
+        <span data-message></span>
+      </p>
+      <p
+        id="onboarding-saved"
+        role="status"
+        aria-live="polite"
+        class="hidden text-primary text-sm"
+      >
+        {t('onboarding.saved')}
+      </p>
+    </form>
+  </div>
+</section>
+
+<script>
+  import { getLangFromUrl, localizePath } from '../../i18n/utils';
+  import { ui } from '../../i18n/ui';
+  import type { Lang } from '../../i18n/ui';
+  import { csrfHeaders } from '../../lib/csrf-client';
+
+  type GeoPoint = { lat: number; lon: number };
+
+  function initOnboardingForm() {
+    const form = document.getElementById('onboarding-form') as HTMLFormElement | null;
+    const submit = document.getElementById('onboarding-submit') as HTMLButtonElement | null;
+    const errorEl = document.getElementById('onboarding-error') as HTMLElement | null;
+    const savedEl = document.getElementById('onboarding-saved') as HTMLElement | null;
+    const messageEl = errorEl?.querySelector('[data-message]') as HTMLElement | null;
+    const latInput = document.createElement('input');
+    latInput.type = 'hidden';
+    latInput.name = '_lat';
+    const lonInput = document.createElement('input');
+    lonInput.type = 'hidden';
+    lonInput.name = '_lon';
+    if (form) {
+      form.appendChild(latInput);
+      form.appendChild(lonInput);
+    }
+    if (!form || !submit || !errorEl || !savedEl || !messageEl) return;
+
+    const lang: Lang = getLangFromUrl(new URL(window.location.href));
+    const saveFailedMsg = ui[lang]['errors.store.saveFailed'];
+
+    let currentLoc: GeoPoint | null = null;
+
+    // MapPicker updates `window.__geoLocation` via a custom event so this
+    // vanilla-script form can read it without a React state subscription.
+    // The MapPicker dispatches `geo:location-change` after a successful pick.
+    window.addEventListener('geo:location-change', (e) => {
+      const detail = (e as CustomEvent).detail as { loc: GeoPoint | null; errorKey: string | null };
+      if (detail.loc) {
+        currentLoc = detail.loc;
+        latInput.value = String(detail.loc.lat);
+        lonInput.value = String(detail.loc.lon);
+      } else {
+        currentLoc = null;
+        latInput.value = '';
+        lonInput.value = '';
+      }
+      refreshSubmit();
+    });
+
+    // Initial sync: if MapPicker has already emitted (e.g. via React effect),
+    // currentLoc may be set; otherwise the form requires a fresh pick.
+    const initialLoc = (window as unknown as { __geoLocation?: GeoPoint | null }).__geoLocation ?? null;
+    if (initialLoc) {
+      currentLoc = initialLoc;
+      latInput.value = String(initialLoc.lat);
+      lonInput.value = String(initialLoc.lon);
+    }
+
+    function refreshSubmit() {
+      const dept = (document.getElementById('department') as HTMLSelectElement | null)?.value ?? '';
+      submit!.disabled = !currentLoc || dept === '';
+    }
+
+    document.getElementById('department')?.addEventListener('change', refreshSubmit);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.classList.add('hidden');
+      savedEl.classList.add('hidden');
+      messageEl.textContent = '';
+
+      const dept = (document.getElementById('department') as HTMLSelectElement | null)?.value ?? '';
+      const addressText = (document.getElementById('address_text') as HTMLInputElement | null)?.value ?? '';
+      if (!currentLoc || dept === '') {
+        messageEl.textContent = saveFailedMsg;
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      submit.disabled = true;
+      submit.setAttribute('aria-busy', 'true');
+
+      const storeId = (window as unknown as { __storeId?: string }).__storeId;
+      if (!storeId) {
+        messageEl.textContent = saveFailedMsg;
+        errorEl.classList.remove('hidden');
+        submit.disabled = false;
+        submit.removeAttribute('aria-busy');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/stores/${storeId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Origin: window.location.origin,
+            ...csrfHeaders(),
+          },
+          body: JSON.stringify({
+            location: currentLoc,
+            department: dept,
+            address_text: addressText || undefined,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: saveFailedMsg }));
+          throw new Error(err.error || saveFailedMsg);
+        }
+        savedEl.classList.remove('hidden');
+        // Redirect to dashboard after a short delay.
+        setTimeout(() => {
+          window.location.href = localizePath('/perfil', lang);
+        }, 1200);
+      } catch (err) {
+        messageEl.textContent = err instanceof Error ? err.message : saveFailedMsg;
+        errorEl.classList.remove('hidden');
+      } finally {
+        submit.disabled = false;
+        submit.removeAttribute('aria-busy');
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initOnboardingForm);
+  } else {
+    initOnboardingForm();
+  }
+  document.addEventListener('astro:page-load', initOnboardingForm);
+</script>

@@ -1,0 +1,18 @@
+---
+export const prerender = false;
+import AuthLayout from '../layouts/AuthLayout.astro';
+import LoginContent from '../components/pages/LoginContent.astro';
+import { getLangFromUrl } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+
+// Belt-and-braces inverse guard: middleware already redirects, but if the
+// route is ever rendered without middleware, fail closed.
+if (Astro.locals.user) {
+  return Astro.redirect('/');
+}
+---
+
+<AuthLayout title={`Login — ArtesaNica`}>
+  <LoginContent lang={lang} />
+</AuthLayout>

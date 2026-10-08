@@ -1,0 +1,46 @@
+---
+export const prerender = false;
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import OrderDetailContent from '../../../components/pages/OrderDetailContent.astro';
+import { getPocketBaseUrl } from '../../../lib/pocketbase';
+import type { OrderData } from '../../../components/pages/OrderDetailContent.astro';
+
+await getPocketBaseUrl();
+const { id } = Astro.params;
+
+// Authentication guard
+if (!Astro.locals.user) {
+  return Astro.redirect(`/en/login?next=${encodeURIComponent(Astro.url.pathname)}`);
+}
+
+let order: OrderData | null = null;
+let errorType: 'notFound' | 'unauthorized' | null = null;
+
+if (!id) {
+  errorType = 'notFound';
+} else {
+  try {
+    const record = await Astro.locals.pb.collection('orders').getOne(id);
+    const currentUser = Astro.locals.user;
+    const isOwner = record.user === currentUser.id;
+    const isAdmin = currentUser.role === 'admin';
+    const isSeller = currentUser.role === 'seller';
+
+    if (!isOwner && !isAdmin && !isSeller) {
+      errorType = 'unauthorized';
+    } else {
+      order = record as unknown as OrderData;
+    }
+  } catch {
+    errorType = 'notFound';
+  }
+}
+
+const pageTitle = order
+  ? `Order Receipt #${order.id} — ArtesaNica`
+  : 'Order Details — ArtesaNica';
+---
+
+<BaseLayout title={pageTitle} noindex={true}>
+  <OrderDetailContent lang="en" order={order} errorType={errorType} />
+</BaseLayout>

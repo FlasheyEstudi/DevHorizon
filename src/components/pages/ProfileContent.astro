@@ -1,0 +1,39 @@
+---
+// =============================================================================
+// ProfileContent.astro
+// =============================================================================
+// Wrapper de la pagina /perfil. Renderiza la isla React <ProfileApp /> que
+// contiene las 6 secciones (overview, mi tienda, mis productos, dashboard,
+// mis pedidos, mi cuenta) con navegacion por tabs.
+//
+// Auth: el middleware ya redirige a /login si no hay user. La isla
+// igualmente maneja el empty state defensivo.
+// =============================================================================
+
+import type { Lang } from '../../i18n/ui';
+import { useTranslations } from '../../i18n/utils';
+import ProfileApp from '../profile/ProfileApp';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+// Labels que se serializan al cliente (Astro no pasa funciones a islands).
+const labels = {
+  title: t('auth.profile.title'),
+  needLogin: t('auth.profile.needLogin'),
+};
+---
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <header class="mb-8">
+    <h1 class="text-3xl md:text-4xl font-bold text-texto tracking-tight">
+      {labels.title}
+    </h1>
+  </header>
+
+  <ProfileApp client:only="react" lang={lang} labels={labels} />
+</section>

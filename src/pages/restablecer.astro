@@ -1,0 +1,13 @@
+---
+export const prerender = false;
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ResetPasswordContent from '../components/pages/ResetPasswordContent.astro';
+import { getLangFromUrl } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const token = Astro.url.searchParams.get('token');
+---
+
+<BaseLayout title={`Restablecer contrasena — ArtesaNica`} noindex={true}>
+  <ResetPasswordContent lang={lang} token={token} />
+</BaseLayout>

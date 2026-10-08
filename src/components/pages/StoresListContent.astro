@@ -1,0 +1,69 @@
+---
+import { pbFileUrl, pocketbaseFor } from '../../lib/pocketbase';
+import { useTranslations, localizePath } from '../../i18n/utils';
+import type { Lang } from '../../i18n/ui';
+import type { RecordModel } from 'pocketbase';
+import { Icon } from 'astro-icon/components';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const l = (path: string) => localizePath(path, lang);
+
+const pbClient = Astro.locals.pb ?? pocketbaseFor(Astro.request);
+
+interface StoreRecord extends RecordModel {
+  name?: string; slug?: string; description?: string;
+  // Pre-PR #1: location was a TEXT field. Renamed to address_text in the
+  // 1700000008 migration. The interface tracks the new shape.
+  address_text?: string; category?: string; logo?: string;
+}
+
+const stores = await pbClient.collection('stores').getList<StoreRecord>(1, 50, { sort: '-created_at' });
+
+function storeLogoUrl(s: StoreRecord): string | null {
+  if (s.logo) return pbFileUrl(s.collectionId, s.id, s.logo);
+  return null;
+}
+---
+
+<section class="py-12">
+  <div class="max-w-7xl mx-auto px-4">
+    <h1 class="text-3xl font-bold text-texto mb-2">{t('pages.stores.title')}</h1>
+    <p class="text-texto-secundario mb-8">{t('pages.stores.subtitle')}</p>
+
+    {stores.items.length === 0 ? (
+      <p class="text-texto-secundario text-center py-8">{t('store.empty')}</p>
+    ) : (
+      <div class="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {stores.items.map((s) => {
+          const logo = storeLogoUrl(s);
+          return (
+            <a href={l(`/tiendas/${s.slug}`)} class="bg-blanco rounded-xl shadow-card hover:shadow-card-hover transition-shadow overflow-hidden flex flex-col">
+              {logo ? (
+                <img src={logo} alt={s.name} class="w-full aspect-square object-cover" loading="lazy" />
+              ) : (
+                <div class="aspect-square bg-borde flex items-center justify-center text-texto-secundario text-4xl">
+                  <Icon name="lucide:store" />
+                </div>
+              )}
+              <div class="p-4 flex-1 flex flex-col">
+                <h3 class="text-lg font-semibold text-texto mb-1">{s.name}</h3>
+                {s.address_text && (
+                  <p class="text-sm text-texto-secundario flex items-center gap-1 mb-2">
+                    <Icon name="lucide:map-pin" /> {s.address_text}
+                  </p>
+                )}
+                {s.category && (
+                  <span class="inline-block self-start px-3 py-1 bg-primary text-white rounded-full text-xs">
+                    {s.category}
+                  </span>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    )}
+  </div>
+</section>

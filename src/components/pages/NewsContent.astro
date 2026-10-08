@@ -1,0 +1,577 @@
+---
+import { pbFileUrl, pocketbaseFor } from '../../lib/pocketbase';
+import type { Lang } from '../../i18n/ui';
+import { Icon } from 'astro-icon/components';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+
+const pbClient = Astro.locals.pb ?? pocketbaseFor(Astro.request);
+
+interface NewsItem {
+  id: string;
+  collectionId: string;
+  title: string;
+  slug: string;
+  summary: string;
+  content: string;
+  image?: string;
+  category?: string;
+  created_at: string;
+}
+
+let newsList: NewsItem[] = [];
+try {
+  newsList = await pbClient.collection('news').getFullList<NewsItem>({
+    filter: 'status = "published"',
+    sort: '-created_at',
+  });
+} catch (e) {
+  console.error('Error fetching news:', e);
+}
+
+// Categorías disponibles para filtros
+const categories = [
+  { key: 'todo',            label: lang === 'en' ? 'All'           : 'Todo' },
+  { key: 'tradicion',       label: lang === 'en' ? 'Tradition'     : 'Tradición' },
+  { key: 'nuevos_productos',label: lang === 'en' ? 'New Products'  : 'Nuevos Productos' },
+  { key: 'comunidad',       label: lang === 'en' ? 'Community'     : 'Comunidad' },
+  { key: 'eventos',         label: lang === 'en' ? 'Events'        : 'Eventos' },
+];
+
+const categoryColors: Record<string, { bg: string; text: string; label: string }> = {
+  tradicion:         { bg: '#B85536', text: '#fff', label: lang === 'en' ? 'Tradition'    : 'Tradición' },
+  nuevos_productos:  { bg: '#285375', text: '#fff', label: lang === 'en' ? 'New Products' : 'Nuevos Productos' },
+  comunidad:         { bg: '#16a34a', text: '#fff', label: lang === 'en' ? 'Community'    : 'Comunidad' },
+  eventos:           { bg: '#E2A349', text: '#1e293b', label: lang === 'en' ? 'Events'   : 'Eventos' },
+};
+
+function getCategoryInfo(cat?: string) {
+  if (!cat) return { bg: '#B85536', text: '#fff', label: lang === 'en' ? 'News' : 'Noticia' };
+  return categoryColors[cat] ?? { bg: '#B85536', text: '#fff', label: cat };
+}
+
+function formatDate(dateStr: string) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString(lang === 'en' ? 'en-US' : 'es-NI', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  });
+}
+
+const featured = newsList[0] ?? null;
+const rest     = newsList.slice(1);
+const getNewsPath = (slug: string) => lang === 'es' ? `/noticias/${slug}` : `/${lang}/noticias/${slug}`;
+---
+
+<!-- ═══════════════════════════ HERO BANNER ══════════════════════════ -->
+<section class="news-hero">
+  {featured && featured.image ? (
+    <img
+      src={pbFileUrl(featured.collectionId, featured.id, featured.image)}
+      alt={featured.title}
+      class="news-hero__bg"
+    />
+  ) : (
+    <div class="news-hero__bg news-hero__bg--fallback"></div>
+  )}
+  <div class="news-hero__overlay"></div>
+  <div class="news-hero__content">
+    <span class="news-hero__tag">{lang === 'en' ? 'Our Story' : 'Nuestra Historia'}</span>
+    <h1 class="news-hero__title">{lang === 'en' ? 'News & Traditions' : 'Noticias y Tradiciones'}</h1>
+    <p class="news-hero__subtitle">
+      {lang === 'en'
+        ? 'Explore the soul of Nicaragua through the stories of our master artisans and discover the new collections that keep our culture alive.'
+        : 'Explora el alma de Nicaragua a través de los relatos de nuestros maestros artesanos y descubre las nuevas colecciones que mantienen viva nuestra cultura.'}
+    </p>
+    <div class="news-hero__actions">
+      <a href="#news-grid" class="news-hero__btn news-hero__btn--primary">
+        {lang === 'en' ? 'Latest News' : 'Ver Últimas Noticias'}
+      </a>
+      <a href="#newsletter" class="news-hero__btn news-hero__btn--outline">
+        {lang === 'en' ? 'Subscribe to Newsletter' : 'Suscribirse al Boletín'}
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ FILTROS ══════════════════════════════ -->
+<div class="news-filters-bar" id="news-grid">
+  <div class="news-filters-bar__inner">
+    <span class="news-filters-bar__label">{lang === 'en' ? 'Filter by:' : 'Filtrar por:'}</span>
+    <div class="news-filters" role="group" aria-label="Filtros de categoría">
+      {categories.map((cat) => (
+        <button
+          class={`news-filter-btn${cat.key === 'todo' ? ' news-filter-btn--active' : ''}`}
+          data-filter={cat.key}
+          type="button"
+        >
+          {cat.label}
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ GRID DE NOTICIAS ═════════════════════ -->
+<section class="news-section">
+  <div class="news-container">
+
+    {newsList.length === 0 ? (
+      <div class="news-empty">
+        <Icon name="lucide:newspaper" class="news-empty__icon" />
+        <h3 class="news-empty__title">{lang === 'en' ? 'No news yet' : 'Sin noticias aún'}</h3>
+        <p class="news-empty__desc">
+          {lang === 'en'
+            ? 'Check back soon for updates from our artisan community.'
+            : 'Vuelve pronto para ver novedades de nuestra comunidad artesana.'}
+        </p>
+      </div>
+    ) : (
+      <div class="news-grid" id="news-articles">
+
+        {/* Fila 1 — 3 cards pequeñas */}
+        {rest.slice(0, 3).map((item) => {
+          const imgUrl  = item.image ? pbFileUrl(item.collectionId, item.id, item.image) : null;
+          const path    = getNewsPath(item.slug);
+          const catInfo = getCategoryInfo(item.category);
+          return (
+            <article class="news-card" data-category={item.category ?? 'todo'}>
+              <a href={path} class="news-card__image-wrap">
+                {imgUrl
+                  ? <img src={imgUrl} alt={item.title} class="news-card__image" loading="lazy" />
+                  : <div class="news-card__image news-card__image--placeholder"><Icon name="lucide:newspaper" class="news-card__placeholder-icon" /></div>}
+              </a>
+              <div class="news-card__body">
+                <div class="news-card__meta">
+                  <span class="news-card__category" style={`background:${catInfo.bg};color:${catInfo.text}`}>{catInfo.label.toUpperCase()}</span>
+                  <time class="news-card__date" datetime={item.created_at}>{formatDate(item.created_at)}</time>
+                </div>
+                <h2 class="news-card__title"><a href={path}>{item.title}</a></h2>
+                <p class="news-card__summary">{item.summary}</p>
+                <a href={path} class="news-card__read-more">{lang === 'en' ? 'Read more' : 'Leer más'} →</a>
+              </div>
+            </article>
+          );
+        })}
+
+        {/* Artículo DESTACADO — ocupa 2 columnas */}
+        {featured && (() => {
+          const imgUrl  = featured.image ? pbFileUrl(featured.collectionId, featured.id, featured.image) : null;
+          const path    = getNewsPath(featured.slug);
+          const catInfo = getCategoryInfo(featured.category);
+          return (
+            <article class="news-card news-card--featured" data-category={featured.category ?? 'todo'}>
+              <a href={path} class="news-card__image-wrap news-card__image-wrap--featured">
+                {imgUrl
+                  ? <img src={imgUrl} alt={featured.title} class="news-card__image" loading="lazy" />
+                  : <div class="news-card__image news-card__image--placeholder"><Icon name="lucide:newspaper" class="news-card__placeholder-icon" /></div>}
+              </a>
+              <div class="news-card__body news-card__body--featured">
+                <div class="news-card__meta">
+                  <span class="news-card__category" style={`background:${catInfo.bg};color:${catInfo.text}`}>{lang === 'en' ? 'FEATURED' : 'DESTACADO'}</span>
+                  <time class="news-card__date" datetime={featured.created_at}>{formatDate(featured.created_at)}</time>
+                </div>
+                <h2 class="news-card__title news-card__title--featured"><a href={path}>{featured.title}</a></h2>
+                <p class="news-card__summary news-card__summary--featured">{featured.summary}</p>
+                <a href={path} class="news-card__cta">{lang === 'en' ? 'View Full Report' : 'Ver Reportaje Completo'} →</a>
+              </div>
+            </article>
+          );
+        })()}
+
+        {/* Card adicional que completa la fila del destacado */}
+        {rest.slice(3, 4).map((item) => {
+          const imgUrl  = item.image ? pbFileUrl(item.collectionId, item.id, item.image) : null;
+          const path    = getNewsPath(item.slug);
+          const catInfo = getCategoryInfo(item.category);
+          return (
+            <article class="news-card" data-category={item.category ?? 'todo'}>
+              <a href={path} class="news-card__image-wrap">
+                {imgUrl
+                  ? <img src={imgUrl} alt={item.title} class="news-card__image" loading="lazy" />
+                  : <div class="news-card__image news-card__image--placeholder"><Icon name="lucide:newspaper" class="news-card__placeholder-icon" /></div>}
+              </a>
+              <div class="news-card__body">
+                <div class="news-card__meta">
+                  <span class="news-card__category" style={`background:${catInfo.bg};color:${catInfo.text}`}>{catInfo.label.toUpperCase()}</span>
+                  <time class="news-card__date" datetime={item.created_at}>{formatDate(item.created_at)}</time>
+                </div>
+                <h2 class="news-card__title"><a href={path}>{item.title}</a></h2>
+                <p class="news-card__summary">{item.summary}</p>
+                <a href={path} class="news-card__read-more">{lang === 'en' ? 'Read more' : 'Leer más'} →</a>
+              </div>
+            </article>
+          );
+        })}
+
+        {/* Resto de artículos */}
+        {rest.slice(4).map((item) => {
+          const imgUrl  = item.image ? pbFileUrl(item.collectionId, item.id, item.image) : null;
+          const path    = getNewsPath(item.slug);
+          const catInfo = getCategoryInfo(item.category);
+          return (
+            <article class="news-card" data-category={item.category ?? 'todo'}>
+              <a href={path} class="news-card__image-wrap">
+                {imgUrl
+                  ? <img src={imgUrl} alt={item.title} class="news-card__image" loading="lazy" />
+                  : <div class="news-card__image news-card__image--placeholder"><Icon name="lucide:newspaper" class="news-card__placeholder-icon" /></div>}
+              </a>
+              <div class="news-card__body">
+                <div class="news-card__meta">
+                  <span class="news-card__category" style={`background:${catInfo.bg};color:${catInfo.text}`}>{catInfo.label.toUpperCase()}</span>
+                  <time class="news-card__date" datetime={item.created_at}>{formatDate(item.created_at)}</time>
+                </div>
+                <h2 class="news-card__title"><a href={path}>{item.title}</a></h2>
+                <p class="news-card__summary">{item.summary}</p>
+                <a href={path} class="news-card__read-more">{lang === 'en' ? 'Read more' : 'Leer más'} →</a>
+              </div>
+            </article>
+          );
+        })}
+
+      </div>
+    )}
+
+    <!-- Paginación -->
+    {newsList.length > 0 && (
+      <nav class="news-pagination" aria-label="Paginación de noticias">
+        <button class="news-pagination__btn" disabled aria-label="Página anterior">‹</button>
+        <button class="news-pagination__btn news-pagination__btn--active" aria-current="page">1</button>
+        <button class="news-pagination__btn">2</button>
+        <button class="news-pagination__btn">3</button>
+        <button class="news-pagination__btn" aria-label="Página siguiente">›</button>
+      </nav>
+    )}
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════ NEWSLETTER ═══════════════════════════ -->
+<section class="news-newsletter" id="newsletter">
+  <div class="news-newsletter__inner">
+    <div class="news-newsletter__icon-wrap">
+      <Icon name="lucide:mail" class="news-newsletter__icon" />
+    </div>
+    <h2 class="news-newsletter__title">
+      {lang === 'en' ? "Don't miss any story" : 'No te pierdas ninguna historia'}
+    </h2>
+    <p class="news-newsletter__desc">
+      {lang === 'en'
+        ? 'Subscribe to receive updates on new collections, artisan profiles and exclusive offers directly in your inbox.'
+        : 'Suscríbete para recibir actualizaciones sobre nuevas colecciones, perfiles de artesanos y ofertas exclusivas directamente en tu correo.'}
+    </p>
+    <form class="news-newsletter__form" action="#" method="post" id="newsletter-form">
+      <input
+        type="email"
+        name="email"
+        id="newsletter-email"
+        class="news-newsletter__input"
+        placeholder={lang === 'en' ? 'Your email address' : 'Tu correo electrónico'}
+        required
+        autocomplete="email"
+      />
+      <button type="submit" class="news-newsletter__submit">
+        {lang === 'en' ? 'Join Now' : 'Unirme ahora'}
+      </button>
+    </form>
+  </div>
+</section>
+
+<style>
+/* ── Variables ── */
+:root {
+  --news-primary:     #B85536;
+  --news-secondary:   #285375;
+  --news-text:        #1e293b;
+  --news-muted:       #64748b;
+  --news-bg:          #f8fafc;
+  --news-border:      #e2e8f0;
+  --news-white:       #ffffff;
+  --news-radius:      14px;
+  --news-ease:        0.25s ease;
+}
+
+/* ── HERO ── */
+.news-hero {
+  position: relative;
+  width: 100%;
+  min-height: 480px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.news-hero__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  z-index: 0;
+}
+.news-hero__bg--fallback {
+  background: linear-gradient(135deg, #2d4a2e 0%, #B85536 60%, #285375 100%);
+}
+.news-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(13,21,32,.15) 0%, rgba(13,21,32,.55) 50%, rgba(13,21,32,.88) 100%);
+  z-index: 1;
+}
+.news-hero__content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 3.5rem;
+}
+.news-hero__tag {
+  display: inline-block;
+  background: var(--news-primary);
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: .25rem .75rem;
+  border-radius: 999px;
+  margin-bottom: 1rem;
+}
+.news-hero__title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+  text-shadow: 0 2px 12px rgba(0,0,0,.3);
+}
+.news-hero__subtitle {
+  font-size: clamp(.9rem, 1.5vw, 1.05rem);
+  color: rgba(255,255,255,.85);
+  max-width: 580px;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+.news-hero__actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.news-hero__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: .65rem 1.4rem;
+  border-radius: 8px;
+  font-size: .875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--news-ease);
+  cursor: pointer;
+}
+.news-hero__btn--primary  { background: var(--news-primary); color: #fff; border: 2px solid var(--news-primary); }
+.news-hero__btn--primary:hover  { background: #9A4227; border-color: #9A4227; transform: translateY(-1px); }
+.news-hero__btn--outline  { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.7); }
+.news-hero__btn--outline:hover  { background: rgba(255,255,255,.12); border-color: #fff; }
+
+/* ── FILTROS ── */
+.news-filters-bar {
+  background: var(--news-white);
+  border-bottom: 1px solid var(--news-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.news-filters-bar__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: .75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.news-filters-bar__label {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--news-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+.news-filters { display: flex; gap: .5rem; flex-wrap: wrap; }
+.news-filter-btn {
+  padding: .35rem 1rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--news-border);
+  background: transparent;
+  color: var(--news-muted);
+  font-size: .82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--news-ease);
+}
+.news-filter-btn:hover { border-color: var(--news-primary); color: var(--news-primary); }
+.news-filter-btn--active { background: var(--news-primary); border-color: var(--news-primary); color: #fff; font-weight: 600; }
+
+/* ── SECCIÓN PRINCIPAL ── */
+.news-section { background: var(--news-bg); padding: 2.5rem 0 4rem; }
+.news-container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* ── GRID ── */
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+/* ── CARD BASE ── */
+.news-card {
+  background: var(--news-white);
+  border-radius: var(--news-radius);
+  overflow: hidden;
+  border: 1px solid var(--news-border);
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow var(--news-ease), transform var(--news-ease);
+}
+.news-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,.12); transform: translateY(-3px); }
+
+.news-card__image-wrap { display: block; overflow: hidden; aspect-ratio: 4/3; flex-shrink: 0; }
+.news-card__image { width: 100%; height: 100%; object-fit: cover; transition: transform .4s ease; }
+.news-card:hover .news-card__image { transform: scale(1.04); }
+.news-card__image--placeholder { width: 100%; height: 100%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; }
+.news-card__placeholder-icon { width: 2.5rem; height: 2.5rem; color: #cbd5e1; }
+
+.news-card__body { padding: 1.25rem; display: flex; flex-direction: column; gap: .5rem; flex: 1; }
+.news-card__meta { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.news-card__category { font-size: .65rem; font-weight: 700; letter-spacing: .08em; padding: .2rem .55rem; border-radius: 4px; white-space: nowrap; }
+.news-card__date { font-size: .75rem; color: var(--news-muted); }
+
+.news-card__title { font-size: 1rem; font-weight: 700; color: var(--news-text); line-height: 1.35; margin: 0; }
+.news-card__title a { color: inherit; text-decoration: none; transition: color var(--news-ease); }
+.news-card__title a:hover { color: var(--news-primary); }
+
+.news-card__summary { font-size: .83rem; color: var(--news-muted); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
+.news-card__read-more { font-size: .82rem; font-weight: 600; color: var(--news-primary); text-decoration: none; display: inline-flex; align-items: center; gap: .25rem; margin-top: .25rem; transition: gap var(--news-ease); }
+.news-card__read-more:hover { gap: .5rem; }
+
+/* ── CARD DESTACADA ── */
+.news-card--featured { grid-column: span 2; flex-direction: row; }
+.news-card__image-wrap--featured { width: 55%; flex-shrink: 0; aspect-ratio: auto; min-height: 240px; }
+.news-card__body--featured { padding: 1.75rem; justify-content: center; }
+.news-card__title--featured { font-size: 1.4rem; line-height: 1.25; }
+.news-card__summary--featured { -webkit-line-clamp: 4; }
+.news-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  margin-top: .75rem;
+  padding: .55rem 1.2rem;
+  background: var(--news-primary);
+  color: #fff;
+  border-radius: 8px;
+  font-size: .82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--news-ease), transform var(--news-ease);
+  align-self: flex-start;
+}
+.news-card__cta:hover { background: #9A4227; transform: translateY(-1px); }
+
+/* ── ESTADO VACÍO ── */
+.news-empty { text-align: center; padding: 4rem 2rem; background: linear-gradient(135deg,#f5f7fa 0%,#e4e8f0 100%); border-radius: var(--news-radius); border: 1px solid var(--news-border); }
+.news-empty__icon { width: 3rem; height: 3rem; color: var(--news-primary); margin: 0 auto 1rem; display: block; }
+.news-empty__title { font-size: 1.2rem; font-weight: 700; color: var(--news-text); margin-bottom: .5rem; }
+.news-empty__desc { color: var(--news-muted); font-size: .9rem; }
+
+/* ── PAGINACIÓN ── */
+.news-pagination { display: flex; justify-content: center; align-items: center; gap: .5rem; margin-top: 1rem; }
+.news-pagination__btn {
+  width: 2.2rem; height: 2.2rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--news-border);
+  background: var(--news-white);
+  color: var(--news-muted);
+  font-size: .9rem; font-weight: 500;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--news-ease);
+}
+.news-pagination__btn:hover:not(:disabled) { border-color: var(--news-primary); color: var(--news-primary); }
+.news-pagination__btn--active { background: var(--news-primary); border-color: var(--news-primary); color: #fff; font-weight: 700; }
+.news-pagination__btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── NEWSLETTER ── */
+.news-newsletter { background: linear-gradient(135deg, #f0f4f8 0%, #e8edf3 100%); border-top: 1px solid var(--news-border); padding: 3.5rem 1.5rem; }
+.news-newsletter__inner { max-width: 560px; margin: 0 auto; text-align: center; }
+.news-newsletter__icon-wrap {
+  width: 3rem; height: 3rem;
+  border-radius: 50%;
+  background: var(--news-white);
+  border: 1.5px solid var(--news-border);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.07);
+}
+.news-newsletter__icon { width: 1.4rem; height: 1.4rem; color: var(--news-primary); }
+.news-newsletter__title { font-size: 1.6rem; font-weight: 800; color: var(--news-text); margin-bottom: .6rem; }
+.news-newsletter__desc { color: var(--news-muted); font-size: .9rem; line-height: 1.7; margin-bottom: 1.75rem; }
+.news-newsletter__form { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; }
+.news-newsletter__input {
+  flex: 1; min-width: 220px;
+  padding: .7rem 1rem;
+  border: 1.5px solid var(--news-border);
+  border-radius: 8px;
+  font-size: .9rem;
+  color: var(--news-text);
+  background: var(--news-white);
+  outline: none;
+  transition: border-color var(--news-ease);
+}
+.news-newsletter__input:focus { border-color: var(--news-primary); box-shadow: 0 0 0 3px rgba(184,85,54,.12); }
+.news-newsletter__input::placeholder { color: #94a3b8; }
+.news-newsletter__submit {
+  padding: .7rem 1.4rem;
+  background: var(--news-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: .9rem; font-weight: 600;
+  cursor: pointer;
+  transition: background var(--news-ease), transform var(--news-ease);
+  white-space: nowrap;
+}
+.news-newsletter__submit:hover { background: #9A4227; transform: translateY(-1px); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .news-grid { grid-template-columns: repeat(2, 1fr); }
+  .news-card--featured { grid-column: span 2; flex-direction: column; }
+  .news-card__image-wrap--featured { width: 100%; aspect-ratio: 16/9; }
+}
+@media (max-width: 600px) {
+  .news-hero { min-height: 380px; }
+  .news-grid { grid-template-columns: 1fr; }
+  .news-card--featured { grid-column: span 1; }
+  .news-hero__actions { flex-direction: column; }
+  .news-filters-bar__inner { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<script>
+  const filterBtns = document.querySelectorAll<HTMLButtonElement>('.news-filter-btn');
+  const articles   = document.querySelectorAll<HTMLElement>('[data-category]');
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter ?? 'todo';
+      filterBtns.forEach(b => b.classList.remove('news-filter-btn--active'));
+      btn.classList.add('news-filter-btn--active');
+      articles.forEach(article => {
+        const cat  = article.dataset.category ?? '';
+        article.style.display = (filter === 'todo' || cat === filter) ? '' : 'none';
+      });
+    });
+  });
+</script>

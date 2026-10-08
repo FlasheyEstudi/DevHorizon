@@ -1,0 +1,187 @@
+---
+// =============================================================================
+// MapaContent.astro — Public mapa page content (full-bleed).
+// =============================================================================
+// Layout full-bleed:
+//   - MapOverlayHeader (fixed, transparente sobre el mapa)
+//   - MapExperience island (client:only="react", fallback skeleton)
+// Sin padding, sin max-w-7xl, sin titulo de pagina (el mapa es el titulo).
+//
+// El store DTO es mas rico que el anterior: incluye `category`, `logo`
+// (filename crudo) y se computa `logoUrl` server-side para no enviar
+// logica de URL al cliente.
+// =============================================================================
+
+import { useTranslations } from '../../i18n/utils';
+import type { Lang } from '../../i18n/ui';
+import type { GeoPointRecord } from '@/lib/types/geo';
+
+import MapExperience from '../maps/MapExperience';
+import MapOverlayHeader from '../header/MapOverlayHeader.astro';
+import type { MapStore, MapI18n, MapCategory } from '../maps/mapShared';
+
+export interface StoreMarkerDTO {
+  id: string;
+  name: string;
+  slug: string;
+  location: GeoPointRecord;
+  department?: string;
+  address_text?: string;
+  category?: string;
+  /** filename crudo guardado en PB (ej: "logo.png"). */
+  logo?: string;
+  /** URL absoluta hacia PocketBase /api/files/... — calculada en SSR. */
+  logoUrl?: string;
+  description?: string;
+  schedule?: any;
+  schedule_text?: string;
+  is_demonstrative?: boolean;
+  total_products?: number;
+  rating_avg?: number;
+  total_reviews?: number;
+}
+
+interface Props {
+  stores: StoreMarkerDTO[];
+  categories?: MapCategory[];
+  lang: Lang;
+  fetchError?: boolean;
+}
+
+const { stores, categories = [], lang, fetchError = false } = Astro.props;
+const t = useTranslations(lang);
+
+// =====================================================================
+// Bundle de traducciones para la isla. NO enviamos el diccionario
+// completo — solo las claves que el mapa necesita. Esto mantiene el
+// bundle de cliente chico.
+// =====================================================================
+const i18n: MapI18n = {
+  title: t('map.title'),
+  subtitle: t('map.subtitle'),
+  loading: t('map.loading'),
+  empty: t('map.empty'),
+  noResults: t('map.empty.noResults'),
+  viewStore: t('common.viewStore'),
+  fabLocate: t('map.fab.locate'),
+  fabLocating: t('map.fab.locating'),
+  geoDeniedTitle: t('map.geoDenied.title'),
+  geoDeniedDesc: t('map.geoDenied.description'),
+  geoDeniedRetry: t('map.geoDenied.retry'),
+  geoOutOfNITitle: t('map.geoOutOfNI.title'),
+  geoOutOfNIDesc: t('map.geoOutOfNI.description'),
+  filterAllCategories: t('map.filters.allCategories'),
+  filterAllDepartments: t('map.filters.allDepartments'),
+  searchPlaceholder: t('map.filters.searchPlaceholder'),
+  sheetExpand: t('map.sheet.expand'),
+  sheetCollapse: t('map.sheet.collapse'),
+  distanceLabel: t('map.distance.label'),
+  resultsLabel: t('map.resultsLabel'),
+  clearFilters: t('map.filters.clear'),
+  kmSuffix: t('map.distance.kmSuffix'),
+  routeHowToGetThere: t('map.route.howToGetThere'),
+  routeCalculating: t('map.route.calculating'),
+  routeDuration: t('map.route.duration'),
+  routeDistance: t('map.route.distance'),
+  routeClose: t('map.route.close'),
+  routeGoogleMaps: t('map.route.openGoogleMaps'),
+  routeWaze: t('map.route.openWaze'),
+  routeNeedLocation: t('map.route.needLocation'),
+  routeError: t('map.route.error'),
+  // Extended keys
+  workshopsIn: t('map.workshopsIn'),
+  directoryTitle: t('map.directoryTitle'),
+  listView: t('map.viewList'),
+  gridView: t('map.viewGrid'),
+  nearestOrder: t('map.nearestOrder'),
+  alphabeticalOrder: t('map.alphabeticalOrder'),
+  foundCount: t('map.foundCount'),
+  routeDestination: t('map.routeDestination'),
+  demonstrative: t('map.demonstrative'),
+  demonstrativeWorkshop: t('map.demonstrativeWorkshop'),
+  masterWorkshop: t('map.masterWorkshop'),
+  certifiedWorkshop: t('map.certifiedWorkshop'),
+  pieceSingle: t('map.pieceSingle'),
+  piecePlural: t('map.piecePlural'),
+  productSingle: t('map.productSingle'),
+  productPlural: t('map.productPlural'),
+  startRoute: t('map.startRoute'),
+  viewAction: t('map.viewAction'),
+  viewDetailsAction: t('map.viewDetailsAction'),
+  workshopSingle: t('map.workshopSingle'),
+  workshopsPlural: t('map.workshopsPlural'),
+  openToday: t('map.openToday'),
+  nearRouteIn: t('map.nearRouteIn'),
+  allNicaragua: t('map.allNicaragua'),
+  activeCountSuffix: t('map.activeCountSuffix'),
+  allWorkshops: t('map.allWorkshops'),
+  fromYou: t('map.fromYou'),
+  calculatingRouteDesc: t('map.calculatingRouteDesc'),
+  recommendedRoute: t('map.recommendedRoute'),
+};
+
+// =====================================================================
+// Mapear DTO -> MapStore (shape que consume la isla).
+// =====================================================================
+const mapStores: MapStore[] = stores.map((s) => ({
+  id: s.id,
+  name: s.name,
+  slug: s.slug,
+  location: s.location,
+  department: s.department,
+  address_text: s.address_text,
+  category: s.category,
+  logoUrl: s.logoUrl,
+  description: s.description,
+  schedule: s.schedule,
+  schedule_text: s.schedule_text,
+  is_demonstrative: s.is_demonstrative,
+  total_products: s.total_products,
+  rating_avg: s.rating_avg,
+  total_reviews: s.total_reviews,
+}));
+---
+
+<!-- MapOverlayHeader se renderiza como HTML estatico (sin isla).
+     Sus scripts internos manejan scroll behavior + theme toggle. -->
+<MapOverlayHeader lang={lang} t={t} />
+
+<MapExperience
+  client:only="react"
+  stores={mapStores}
+  categories={categories}
+  lang={lang}
+  i18n={i18n}
+>
+  <div
+    slot="fallback"
+    class="absolute inset-0 flex items-center justify-center bg-fondo"
+  >
+    <div class="flex flex-col items-center gap-3">
+      <div class="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+      <p class="text-sm text-texto-secundario">{t('map.loading')}</p>
+    </div>
+  </div>
+</MapExperience>
+
+{fetchError && (
+  <aside
+    role="alert"
+    class="fixed top-16 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-md bg-red-600/95 text-white backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between gap-3 text-sm animate-in fade-in duration-300"
+  >
+    <div class="flex items-center gap-2.5">
+      <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <span>
+        {t('map.offlineAlert')}
+      </span>
+    </div>
+    <button
+      onclick="window.location.reload()"
+      class="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-semibold cursor-pointer transition shrink-0"
+    >
+      {t('map.retry')}
+    </button>
+  </aside>
+)}

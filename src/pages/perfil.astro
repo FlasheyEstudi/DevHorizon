@@ -1,0 +1,20 @@
+---
+export const prerender = false;
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProfileContent from '../components/pages/ProfileContent.astro';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+// Belt-and-braces guard: middleware already redirects, but if the route is
+// ever rendered without middleware (e.g. a prerendered static build of a
+// future variant), fail closed.
+if (!Astro.locals.user) {
+  return Astro.redirect(`/login?next=${encodeURIComponent(Astro.url.pathname)}`);
+}
+---
+
+<BaseLayout title={`${t('profile.title')} — ArtesaNica`} noindex={true}>
+  <ProfileContent lang={lang} />
+</BaseLayout>

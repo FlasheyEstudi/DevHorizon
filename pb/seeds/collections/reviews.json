@@ -1,0 +1,114 @@
+[
+  {
+    "_key": "review-001",
+    "_userRef": "luis",
+    "_productRef": "olla-barro-tradicional",
+    "rating": 5,
+    "comment": "Excelente calidad. María me explicó cómo curarla y quedó perfecta para los frijoles. Se nota el amor con el que está hecha."
+  },
+  {
+    "_key": "review-002",
+    "_userRef": "luis",
+    "_productRef": "collar-piedra-volcanica",
+    "rating": 5,
+    "comment": "Hermoso collar. La piedra tiene un veteado único y la cadena es sólida. Lo recomiendo."
+  },
+  {
+    "_key": "review-003",
+    "_userRef": "ana_buyer",
+    "_productRef": "mochila-cuero-viajero",
+    "rating": 4,
+    "comment": "Mochila muy bien terminada, el cuero huele increíble. Tardó un poco más de lo esperado en llegar, pero valió la pena."
+  },
+  {
+    "_key": "review-004",
+    "_userRef": "ana_buyer",
+    "_productRef": "vasija-precolombina",
+    "rating": 5,
+    "comment": "Una pieza preciosa. El negro es profundo y uniforme. La tengo en la sala y todo el mundo pregunta por ella."
+  },
+  {
+    "_key": "review-005",
+    "_userRef": "diego_buyer",
+    "_productRef": "rebozo-indigo",
+    "rating": 5,
+    "comment": "El tono del índigo es espectacular. Tejido firme y suave a la vez. Se nota que está hecho con calma."
+  },
+  {
+    "_key": "review-006",
+    "_userRef": "diego_buyer",
+    "_productRef": "escultura-raices-naturales",
+    "rating": 4,
+    "comment": "Pieza con mucha personalidad. Me gusta que cada una sea única."
+  },
+  {
+    "_key": "review-007",
+    "_userRef": "carmen_buyer",
+    "_productRef": "cesta-pino-grande",
+    "rating": 5,
+    "comment": "La uso para guardar el pan y queda preciosa en la cocina. Cooperativa admirable, ojalá sigan así."
+  },
+  {
+    "_key": "review-008",
+    "_userRef": "carmen_buyer",
+    "_productRef": "silla-caoba-rustica",
+    "rating": 5,
+    "comment": "Silla sólida y muy bien hecha. Los ensambles son perfectos. Una pieza para toda la vida."
+  },
+  {
+    "_key": "review-009",
+    "_userRef": "luis",
+    "_productRef": "mesa-rustica-caoba",
+    "rating": 5,
+    "comment": "La mesa quedó como nueva en mi comedor. Las vetas de la caoba son únicas. Vale cada córdoba."
+  },
+  {
+    "_key": "review-010",
+    "_userRef": "ana_buyer",
+    "_productRef": "collar-filigrana-oro",
+    "rating": 4,
+    "comment": "Filigrana impecable. Un poco más pequeño de lo que imaginé, pero la terminación es excelente."
+  },
+  {
+    "_key": "review-011",
+    "_userRef": "diego_buyer",
+    "_productRef": "hamaca-algodon",
+    "rating": 5,
+    "comment": "La mejor hamaca que he tenido. Cómoda, resistente y con un tejido impecable. Ya quiero otra para la terraza."
+  },
+  {
+    "_key": "review-012",
+    "_userRef": "carmen_buyer",
+    "_productRef": "manta-algodon-gruesa",
+    "rating": 5,
+    "comment": "Manta perfecta para el fresco de Granada. Gruesa pero transpirable. El tejido es firme."
+  },
+  {
+    "_key": "review-013",
+    "_userRef": "luis",
+    "_productRef": "mantel-bordado-seda",
+    "rating": 5,
+    "comment": "Una obra de arte. Cada puntada está hecha con cuidado. Lo uso solo en ocasiones especiales."
+  },
+  {
+    "_key": "review-014",
+    "_userRef": "ana_buyer",
+    "_productRef": "jarra-barro-rojo",
+    "rating": 4,
+    "comment": "El bruñido es precioso. Mantiene el agua fresca todo el día. Muy contenta."
+  },
+  {
+    "_key": "review-015",
+    "_userRef": "diego_buyer",
+    "_productRef": "bufanda-lana-tenida",
+    "rating": 5,
+    "comment": "Lana suave y los colores son preciosos. Se nota que el teñido es natural. Quiero otra."
+  },
+  {
+    "_key": "review-016",
+    "_userRef": "carmen_buyer",
+    "_productRef": "juego-cucharas-madera",
+    "rating": 4,
+    "comment": "Muy lindas y prácticas. El acabado con aceite mineral las deja suaves. Perfectas para cocinar."
+  }
+]

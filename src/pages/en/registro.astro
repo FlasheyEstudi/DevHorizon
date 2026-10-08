@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import RegisterContent from '../../components/pages/RegisterContent.astro';
+---
+
+<AuthLayout title={`Sign Up — ArtesaNica`}>
+  <RegisterContent lang="en" />
+</AuthLayout>

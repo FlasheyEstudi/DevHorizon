@@ -1,0 +1,92 @@
+---
+export const prerender = false;
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductDetailContent from '../../components/pages/ProductDetailContent.astro';
+import ProductNotFoundContent from '../../components/pages/ProductNotFoundContent.astro';
+import { pb, pbFileUrl } from '../../lib/pocketbase';
+import { getLangFromUrl } from '../../i18n/utils';
+import type { RecordModel } from 'pocketbase';
+
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+interface CategoryRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+}
+
+interface ProductRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  description?: string;
+  price?: number;
+  images?: string[];
+  store?: string;
+  categories?: string[];
+  rating_avg?: number;
+  expand?: {
+    categories?: CategoryRecord[];
+    store?: StoreRecord;
+  };
+}
+interface StoreRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  owner?: string;
+  department?: string;
+  address_text?: string;
+}
+
+const lang = getLangFromUrl(Astro.url);
+const { slug } = Astro.params;
+
+let product: ProductRecord | null = null;
+let store: StoreRecord | null = null;
+let productOwnerId: string | null = null;
+let notFound = false;
+
+// 1. Validar que el slug cumpla el patrón seguro antes de consultar la DB (H-21)
+if (!slug || !SLUG_PATTERN.test(slug)) {
+  notFound = true;
+  Astro.response.status = 404;
+} else {
+  try {
+    product = await pb.collection('products').getFirstListItem<ProductRecord>(
+      pb.filter('slug = {:slug} && status = "published"', { slug }),
+      { expand: 'categories,store' }
+    );
+    if (product.expand?.store) {
+      store = product.expand.store;
+      productOwnerId = (store.owner as string) || null;
+    } else if (product.store) {
+      try {
+        store = await pb.collection('stores').getOne<StoreRecord>(product.store);
+        productOwnerId = (store.owner as string) || null;
+      } catch {}
+    }
+  } catch {
+    notFound = true;
+  }
+
+  if (notFound || !product) {
+    notFound = true;
+    Astro.response.status = 404;
+  }
+}
+
+const productImg = product?.images?.[0] && product.id
+  ? pbFileUrl('products', product.id, product.images[0])
+  : null;
+---
+
+<BaseLayout
+  title={product?.name ? `${product.name} — ArtesaNica` : 'Producto — ArtesaNica'}
+  description={product?.description || undefined}
+  image={productImg}
+  ogType="product"
+  noindex={notFound || !product}
+>
+  {notFound || !product
+    ? <ProductNotFoundContent lang={lang} />
+    : <ProductDetailContent lang={lang} product={product} store={store} productOwnerId={productOwnerId} />
+  }
+</BaseLayout>

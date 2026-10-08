@@ -1,0 +1,856 @@
+---
+// =============================================================================
+// HomeContent.astro
+// =============================================================================
+// Contenido de la home reutilizable. Recibe `lang` via prop y renderiza
+// todas las secciones (hero, trust strip, categorias, productos, tiendas,
+// news card). Lenguaje visual: marketplace moderno, cards densas pero con
+// aire, paleta de marca (verde primary, azul secondary) sobre fondos neutros.
+// =============================================================================
+
+import { pbFileUrl, pocketbaseFor } from "../../lib/pocketbase";
+import { useTranslations, localizePath } from "../../i18n/utils";
+import type { Lang } from "../../i18n/ui";
+import type { RecordModel } from "pocketbase";
+import { Icon } from "astro-icon/components";
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const l = (path: string) => localizePath(path, lang);
+
+// Usar la instancia per-request provista por Astro.locals.pb o pocketbaseFor(Astro.request)
+const pbClient = Astro.locals.pb ?? pocketbaseFor(Astro.request);
+
+interface CategoryRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  description?: string;
+  icon?: string;
+}
+interface StoreRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  description?: string;
+  address_text?: string;
+  department?: string;
+  logo?: string;
+}
+interface ProductRecord extends RecordModel {
+  name?: string;
+  slug?: string;
+  description?: string;
+  price?: number;
+  images?: string[];
+  store?: string;
+  categories?: string[];
+  rating_avg?: number;
+  rating_count?: number;
+  expand?: {
+    store?: StoreRecord;
+    categories?: CategoryRecord[];
+  };
+}
+
+let categories = { items: [] as CategoryRecord[] };
+let products = { items: [] as ProductRecord[] };
+let stores = { items: [] as StoreRecord[] };
+
+try {
+  const [catRes, prodRes, storeRes] = await Promise.all([
+    pbClient.collection("categories").getList<CategoryRecord>(1, 20, {
+      sort: "name",
+    }),
+    // Expandimos `store` para mostrar el nombre del artesano en la card,
+    // y `categories` para el badge de categoria arriba de la imagen.
+    pbClient.collection("products").getList<ProductRecord>(1, 8, {
+      sort: "-@rowid",
+      filter: 'status = "published"',
+      expand: "store,categories",
+    }),
+    pbClient.collection("stores").getList<StoreRecord>(1, 4, { sort: "-@rowid" }),
+  ]);
+  categories = catRes;
+  products = prodRes;
+  stores = storeRes;
+} catch (err) {
+  console.error('[HomeContent] Failed to fetch data from PocketBase:', err);
+}
+
+function productImageUrl(p: ProductRecord): string | null {
+  if (p.images && p.images.length > 0) {
+    return pbFileUrl(p.collectionId, p.id, p.images[0]);
+  }
+  return null;
+}
+function storeLogoUrl(s: StoreRecord): string | null {
+  if (s.logo) return pbFileUrl(s.collectionId, s.id, s.logo);
+  return null;
+}
+function categoryIcon(slug?: string, iconName?: string): string {
+  const map: Record<string, string> = {
+    ceramica: "lucide:coffee",
+    barro: "lucide:sprout",
+    textil: "lucide:shirt",
+    hamacas: "lucide:bed",
+    madera: "lucide:trees",
+    cuero: "lucide:shopping-bag",
+    joyeria: "lucide:gem",
+    cesteria: "lucide:shopping-basket",
+    fibras: "lucide:leaf",
+    bordados: "lucide:palette",
+  };
+  const key = `${slug || ""} ${iconName || ""}`.toLowerCase();
+  for (const [k, v] of Object.entries(map)) {
+    if (key.includes(k)) return v;
+  }
+  return "lucide:tag";
+}
+
+// Trust strip (4 senales de marketplace). Icono + texto corto.
+const trustSignals = [
+  { icon: "lucide:truck", label: "home.trust.shipping" },
+  { icon: "lucide:shield-check", label: "home.trust.payment" },
+  { icon: "lucide:hand-heart", label: "home.trust.handmade" },
+  { icon: "lucide:users", label: "home.trust.directFromArtisan" },
+];
+
+// =============================================================================
+// Reusable: 5 estrellas con N pintadas
+// =============================================================================
+function renderStars(rating: number) {
+  return Array.from({ length: 5 }).map((_, i) => i < rating);
+}
+
+// Categorías del Hero dinámicas desde la colección categories de PocketBase
+const heroCategories = [
+  { slug: "", name: t("hero.categoryAll") || "Todo", icon: "lucide:layout-grid" },
+  ...categories.items.map((cat) => ({
+    slug: cat.slug || "",
+    name: cat.name || cat.slug || "",
+    icon: categoryIcon(cat.slug, cat.icon),
+  })),
+];
+---
+
+<!-- Hero Section (Adaptado al estilo NicaExplora con brand de ArtesaNica) -->
+<section class="relative w-full overflow-hidden bg-fondo py-12 sm:py-18 lg:py-22 border-b border-borde">
+  <!-- Fondo decorativo artesanal y sutil glow cálido -->
+  <div class="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+    <div class="absolute -top-36 left-1/2 -translate-x-1/2 w-[650px] sm:w-[820px] h-[380px] bg-gradient-to-b from-primary/15 via-tertiary/10 to-transparent blur-3xl rounded-full dark:from-primary/10 dark:via-tertiary/5"></div>
+    <!-- Patrón geométrico sutil artesanal -->
+    <div class="absolute inset-0 opacity-[0.035] dark:opacity-[0.05] bg-[radial-gradient(#B85536_1.5px,transparent_1.5px)] [background-size:28px_28px]"></div>
+  </div>
+
+  <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
+    <!-- Título principal estilo NicaExplora -->
+    <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-texto tracking-tight mb-5 sm:mb-7 leading-tight">
+      {t("hero.question")}
+    </h1>
+
+    <!-- Barra de Categorías / Pills (Scroll suave horizontal con controles y soporte de rueda de mouse) -->
+    <div class="relative w-full max-w-xl sm:max-w-2xl md:max-w-3xl mx-auto mb-4 sm:mb-5 group/pills px-1 sm:px-2">
+      <!-- Botón Scroll Izquierda (<) -->
+      <button
+        type="button"
+        id="hero-pills-prev"
+        aria-label="Ver categorías anteriores"
+        class="opacity-0 pointer-events-none absolute -left-1 sm:-left-2 top-1/2 -translate-y-1/2 z-20 w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full bg-blanco/80 dark:bg-zinc-900/80 backdrop-blur-xs border border-borde/70 text-texto-secundario hover:text-primary hover:border-primary/50 hover:bg-blanco dark:hover:bg-zinc-800 shadow-2xs flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
+      >
+        <Icon name="lucide:chevron-left" class="size-3.5" />
+      </button>
+
+      <!-- Máscara de desvanecimiento izquierda -->
+      <div 
+        id="hero-pills-fade-left"
+        class="opacity-0 pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:w-10 bg-gradient-to-r from-fondo via-fondo/70 to-transparent z-10 transition-opacity duration-200" 
+        aria-hidden="true"
+      ></div>
+
+      <!-- Contenedor scrollable de pills (Alineado al inicio, muestra ~4-5 visibles y el resto con scroll) -->
+      <div 
+        id="hero-category-pills"
+        class="flex items-center gap-2 sm:gap-2.5 overflow-x-auto no-scrollbar py-1.5 px-3 sm:px-4 justify-start scroll-smooth select-none"
+      >
+        {heroCategories.map((cat, idx) => (
+          <a
+            href={cat.slug ? l(`/productos?categoria=${cat.slug}`) : l("/productos")}
+            data-category={cat.slug}
+            class={`hero-category-tab inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shrink-0 shadow-2xs ${
+              idx === 0
+                ? "bg-texto text-blanco dark:bg-white dark:text-zinc-900 border-2 border-texto dark:border-white shadow-xs"
+                : "bg-blanco dark:bg-zinc-900 text-texto-secundario hover:text-texto border border-gray-200/90 dark:border-zinc-700/80 hover:border-primary/50 hover:shadow-xs"
+            }`}
+          >
+            <Icon name={cat.icon} class={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${idx === 0 ? "text-blanco dark:text-zinc-900" : "text-primary"}`} />
+            <span>{cat.name}</span>
+          </a>
+        ))}
+      </div>
+
+      <!-- Máscara de desvanecimiento derecha -->
+      <div 
+        id="hero-pills-fade-right"
+        class="pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-10 bg-gradient-to-l from-fondo via-fondo/70 to-transparent z-10 transition-opacity duration-200" 
+        aria-hidden="true"
+      ></div>
+
+      <!-- Botón Scroll Derecha (>) -->
+      <button
+        type="button"
+        id="hero-pills-next"
+        aria-label="Ver más categorías"
+        class="absolute -right-1 sm:-right-2 top-1/2 -translate-y-1/2 z-20 w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full bg-blanco/80 dark:bg-zinc-900/80 backdrop-blur-xs border border-borde/70 text-texto-secundario hover:text-primary hover:border-primary/50 hover:bg-blanco dark:hover:bg-zinc-800 shadow-2xs flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
+      >
+        <Icon name="lucide:chevron-right" class="size-3.5" />
+      </button>
+    </div>
+
+    <!-- Barra de Búsqueda Principal (Pill redondeada con botón de búsqueda) -->
+    <form
+      id="hero-search-form"
+      action={l("/productos")}
+      method="GET"
+      class="relative w-full max-w-2xl sm:max-w-2xl mx-auto mb-6"
+    >
+      <input type="hidden" name="categoria" id="hero-selected-category" value="" />
+      
+      <div class="relative flex items-center group">
+        <input
+          type="text"
+          name="q"
+          id="hero-search-input"
+          placeholder={t("hero.searchPlaceholder")}
+          autocomplete="off"
+          class="w-full bg-blanco dark:bg-zinc-900 text-texto placeholder:text-texto-secundario/60 border border-gray-300 dark:border-zinc-700 hover:border-primary/60 focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-full py-3 sm:py-3.5 pl-5 sm:pl-6 pr-14 text-xs sm:text-sm md:text-base shadow-2xs hover:shadow-md transition-all outline-none"
+        />
+
+        <button
+          type="submit"
+          aria-label="Buscar"
+          class="absolute right-1.5 sm:right-2 p-2 sm:p-2.5 rounded-full bg-primary hover:bg-primary-dark text-white shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center"
+        >
+          <Icon name="lucide:search" class="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+        </button>
+      </div>
+    </form>
+
+    <!-- Botones de Acción (Directamente adaptados de NicaExplora) -->
+    <div class="flex flex-row items-center justify-center gap-3 w-full max-w-md mx-auto">
+      <!-- Botón 1: Explorar Catálogo con IA / Destellos (Azul secundario) -->
+      <a
+        href={l("/productos")}
+        class="inline-flex items-center justify-center gap-2 bg-secondary hover:bg-secondary-dark text-white font-semibold text-xs sm:text-sm py-2.5 sm:py-3 px-5 sm:px-6 rounded-xl sm:rounded-full shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
+      >
+        <span>{t("hero.btnExplore")}</span>
+        <Icon name="lucide:sparkles" class="w-4 h-4 text-tertiary" />
+      </a>
+
+      <!-- Botón 2: Búsqueda por voz / Micrófono -->
+      <button
+        type="button"
+        id="hero-voice-search-btn"
+        class="inline-flex items-center justify-center gap-2 bg-blanco dark:bg-zinc-900 border border-red-300 dark:border-red-900/60 hover:border-red-500 text-red-600 dark:text-red-400 font-semibold text-xs sm:text-sm py-2.5 sm:py-3 px-5 sm:px-6 rounded-xl sm:rounded-full shadow-2xs hover:shadow-xs transition-all hover:-translate-y-0.5 cursor-pointer"
+      >
+        <span id="hero-voice-text">{t("hero.btnVoice")}</span>
+        <Icon name="lucide:mic" class="w-4 h-4 text-red-500" />
+      </button>
+    </div>
+
+    <!-- Indicador dinámico de estado de voz -->
+    <div id="hero-voice-status" class="hidden mt-3 text-xs text-red-600 dark:text-red-400 font-medium animate-pulse">
+      🎙️ Escuchando... Di qué artesanía buscas (ej. "hamaca matrimonial")
+    </div>
+  </div>
+</section>
+
+<script>
+  function setupHeroSearch() {
+    // Control de scroll y navegación de categorías del Hero
+    const pillsContainer = document.getElementById("hero-category-pills");
+    const prevBtn = document.getElementById("hero-pills-prev");
+    const nextBtn = document.getElementById("hero-pills-next");
+    const fadeLeft = document.getElementById("hero-pills-fade-left");
+    const fadeRight = document.getElementById("hero-pills-fade-right");
+
+    function updatePillsArrows() {
+      if (!pillsContainer) return;
+      const { scrollLeft, scrollWidth, clientWidth } = pillsContainer;
+      const maxScroll = scrollWidth - clientWidth;
+      const canScrollLeft = scrollLeft > 6;
+      const canScrollRight = scrollLeft < maxScroll - 6;
+
+      if (prevBtn) {
+        if (canScrollLeft) {
+          prevBtn.classList.remove("opacity-0", "pointer-events-none");
+          prevBtn.classList.add("opacity-100", "pointer-events-auto");
+        } else {
+          prevBtn.classList.add("opacity-0", "pointer-events-none");
+          prevBtn.classList.remove("opacity-100", "pointer-events-auto");
+        }
+      }
+      if (fadeLeft) {
+        if (canScrollLeft) {
+          fadeLeft.classList.remove("opacity-0");
+          fadeLeft.classList.add("opacity-100");
+        } else {
+          fadeLeft.classList.add("opacity-0");
+          fadeLeft.classList.remove("opacity-100");
+        }
+      }
+
+      if (nextBtn) {
+        if (canScrollRight) {
+          nextBtn.classList.remove("opacity-0", "pointer-events-none");
+          nextBtn.classList.add("opacity-100", "pointer-events-auto");
+        } else {
+          nextBtn.classList.add("opacity-0", "pointer-events-none");
+          nextBtn.classList.remove("opacity-100", "pointer-events-auto");
+        }
+      }
+      if (fadeRight) {
+        if (canScrollRight) {
+          fadeRight.classList.remove("opacity-0");
+          fadeRight.classList.add("opacity-100");
+        } else {
+          fadeRight.classList.add("opacity-0");
+          fadeRight.classList.remove("opacity-100");
+        }
+      }
+    }
+
+    if (pillsContainer) {
+      // Scroll horizontal con la rueda del ratón (mouse wheel)
+      pillsContainer.addEventListener("wheel", (e) => {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          pillsContainer.scrollLeft += e.deltaY * 0.9;
+          updatePillsArrows();
+        }
+      }, { passive: false });
+
+      pillsContainer.addEventListener("scroll", updatePillsArrows, { passive: true });
+      window.addEventListener("resize", updatePillsArrows, { passive: true });
+      setTimeout(updatePillsArrows, 50);
+    }
+
+    nextBtn?.addEventListener("click", () => {
+      pillsContainer?.scrollBy({ left: 220, behavior: "smooth" });
+    });
+
+    prevBtn?.addEventListener("click", () => {
+      pillsContainer?.scrollBy({ left: -220, behavior: "smooth" });
+    });
+
+    const voiceBtn = document.getElementById("hero-voice-search-btn");
+    const voiceText = document.getElementById("hero-voice-text");
+    const voiceStatus = document.getElementById("hero-voice-status");
+    const searchInput = document.getElementById("hero-search-input") as HTMLInputElement | null;
+    const searchForm = document.getElementById("hero-search-form") as HTMLFormElement | null;
+    const catInput = document.getElementById("hero-selected-category") as HTMLInputElement | null;
+    const catTabs = document.querySelectorAll<HTMLAnchorElement>(".hero-category-tab");
+
+    // Sincronizar selección de categoría al interactuar
+    catTabs.forEach((tab) => {
+      tab.addEventListener("click", (e) => {
+        const catSlug = tab.getAttribute("data-category") || "";
+        const queryText = searchInput?.value.trim();
+
+        // Si ya hay texto escrito en el buscador, enviar el form con ambos
+        if (queryText && catInput && searchForm) {
+          e.preventDefault();
+          catInput.value = catSlug;
+          searchForm.submit();
+        }
+      });
+    });
+
+    if (!voiceBtn || !searchInput) return;
+
+    // Web Speech API
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      voiceBtn.addEventListener("click", () => {
+        searchInput.focus();
+      });
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = document.documentElement.lang?.startsWith("en") ? "en-US" : "es-NI";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    let isListening = false;
+
+    function resetVoiceUI() {
+      isListening = false;
+      voiceBtn?.classList.remove("ring-2", "ring-red-500", "bg-red-50", "dark:bg-red-950/30");
+      voiceStatus?.classList.add("hidden");
+      if (voiceText) {
+        voiceText.textContent = voiceBtn?.getAttribute("data-original-text") || voiceText.textContent;
+      }
+    }
+
+    if (voiceText && !voiceBtn.hasAttribute("data-original-text")) {
+      voiceBtn.setAttribute("data-original-text", voiceText.textContent || "");
+    }
+
+    voiceBtn.addEventListener("click", () => {
+      if (isListening) {
+        recognition.stop();
+        resetVoiceUI();
+        return;
+      }
+
+      try {
+        recognition.start();
+        isListening = true;
+        voiceBtn.classList.add("ring-2", "ring-red-500", "bg-red-50", "dark:bg-red-950/30");
+        voiceStatus?.classList.remove("hidden");
+        if (voiceText) voiceText.textContent = "Escuchando...";
+      } catch (err) {
+        console.warn("Speech recognition error:", err);
+        resetVoiceUI();
+      }
+    });
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript;
+      if (transcript && searchInput) {
+        searchInput.value = transcript;
+        resetVoiceUI();
+        searchForm?.submit();
+      }
+    };
+
+    recognition.onerror = () => {
+      resetVoiceUI();
+    };
+
+    recognition.onend = () => {
+      resetVoiceUI();
+    };
+  }
+
+  setupHeroSearch();
+  document.addEventListener("astro:page-load", setupHeroSearch);
+</script>
+
+<!-- Trust strip -->
+<section
+  class="border-b border-borde bg-blanco/60 backdrop-blur"
+  aria-label="Senales de confianza"
+>
+  <div
+    class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 grid grid-cols-2 md:grid-cols-4 gap-3"
+  >
+    {
+      trustSignals.map((s) => (
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-texto-secundario">
+          <Icon name={s.icon} class="text-secondary text-base sm:text-lg shrink-0" />
+          <span class="font-medium">{t(s.label)}</span>
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<!-- Explora por Categoría (Totalmente dinámico desde la colección `categories`) -->
+<section id="categorias" class="pt-8 pb-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-secondary font-bold text-lg sm:text-xl md:text-2xl tracking-tight">
+        {t("sections.categories")}
+      </h2>
+      <a
+        href={l("/productos")}
+        class="text-xs sm:text-sm font-semibold text-primary hover:text-primary-dark transition-colors inline-flex items-center gap-1"
+      >
+        <span>{t("pages.products.viewAllCategories") || "Ver todo el catálogo"}</span>
+        <Icon name="lucide:arrow-right" class="size-3.5" />
+      </a>
+    </div>
+
+    {categories.items.length === 0 ? (
+      <div class="text-center py-8 text-texto-secundario text-sm bg-blanco dark:bg-zinc-900 rounded-2xl border border-borde p-6">
+        {t("categories.empty")}
+      </div>
+    ) : (
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+        {categories.items.map((cat) => (
+          <a
+            href={l(`/productos?categoria=${cat.slug}`)}
+            class="bg-blanco dark:bg-zinc-900 rounded-2xl border border-gray-200/90 dark:border-zinc-800 p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-2xs hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5 transition-all group"
+          >
+            <div class="w-13 h-13 sm:w-14 sm:h-14 bg-primary/10 dark:bg-primary/20 rounded-2xl flex items-center justify-center text-primary mb-2.5 group-hover:bg-primary/20 group-hover:scale-105 transition-all">
+              <Icon name={categoryIcon(cat.slug, cat.icon)} class="text-2xl sm:text-3xl text-primary" />
+            </div>
+            <span class="text-xs sm:text-sm font-semibold text-texto group-hover:text-primary transition-colors">
+              {cat.name}
+            </span>
+            {cat.description && (
+              <span class="text-[11px] text-texto-secundario line-clamp-1 mt-0.5 opacity-80">
+                {cat.description}
+              </span>
+            )}
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</section>
+
+<!-- Opción 2: El Proceso Artesanal (Del Barro a tus Manos) -->
+<section id="proceso" class="py-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="bg-gradient-to-br from-[#0c131f] via-[#1a1210] to-[#0c131f] text-white rounded-3xl p-6 sm:p-10 shadow-lg border border-primary/30 relative overflow-hidden">
+      <!-- Glow decorativo -->
+      <div class="absolute top-0 right-0 w-80 h-80 bg-primary/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="relative z-10 max-w-3xl mb-8">
+        <span class="text-[11px] font-bold tracking-widest text-accent-amber uppercase mb-2 block border-l-2 border-accent-amber pl-2.5 leading-none">
+          {t("process.tag")}
+        </span>
+        <h2 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-2 leading-tight">
+          {t("process.title")}
+        </h2>
+        <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">
+          {t("process.subtitle")}
+        </p>
+      </div>
+
+      <!-- 3 Pasos del proceso -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8 relative z-10">
+        <div class="bg-white/5 backdrop-blur-md rounded-2xl p-5 border border-white/10 hover:border-accent-amber/50 transition-all group">
+          <div class="w-12 h-12 bg-accent-amber/20 text-accent-amber rounded-xl flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+            <Icon name="lucide:shovel" />
+          </div>
+          <h3 class="text-sm font-bold text-white mb-1.5">
+            {t("process.step1.title")}
+          </h3>
+          <p class="text-xs text-gray-300 leading-relaxed">
+            {t("process.step1.desc")}
+          </p>
+        </div>
+
+        <div class="bg-white/5 backdrop-blur-md rounded-2xl p-5 border border-white/10 hover:border-primary/50 transition-all group">
+          <div class="w-12 h-12 bg-primary/20 text-primary rounded-xl flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+            <Icon name="lucide:flame" />
+          </div>
+          <h3 class="text-sm font-bold text-white mb-1.5">
+            {t("process.step2.title")}
+          </h3>
+          <p class="text-xs text-gray-300 leading-relaxed">
+            {t("process.step2.desc")}
+          </p>
+        </div>
+
+        <div class="bg-white/5 backdrop-blur-md rounded-2xl p-5 border border-white/10 hover:border-accent-amber/50 transition-all group">
+          <div class="w-12 h-12 bg-accent-amber/20 text-accent-amber rounded-xl flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+            <Icon name="lucide:palette" />
+          </div>
+          <h3 class="text-sm font-bold text-white mb-1.5">
+            {t("process.step3.title")}
+          </h3>
+          <p class="text-xs text-gray-300 leading-relaxed">
+            {t("process.step3.desc")}
+          </p>
+        </div>
+      </div>
+
+      <div class="relative z-10 flex">
+        <a
+          href={l("/productos")}
+          class="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-6 rounded-xl shadow-md transition-all text-xs sm:text-sm"
+        >
+          <span>{t("process.cta")}</span>
+          <Icon name="lucide:arrow-right" class="text-base" />
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Opción 3: Ruta de Pueblos Artesanales (Mapa Interactivo) -->
+<section id="ruta-artesanal" class="py-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="bg-secondary/5 dark:bg-secondary/15 rounded-3xl p-6 sm:p-8 border border-secondary/20 dark:border-secondary/30 shadow-2xs">
+      <div class="max-w-3xl mb-6">
+        <span class="text-[11px] font-bold tracking-widest text-secondary dark:text-secondary uppercase mb-2 block border-l-2 border-secondary pl-2.5 leading-none">
+          {t("route.tag")}
+        </span>
+        <h2 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-texto mb-2 leading-snug">
+          {t("route.title")}
+        </h2>
+        <p class="text-xs sm:text-sm text-texto-secundario leading-relaxed">
+          {t("route.subtitle")}
+        </p>
+      </div>
+
+      <!-- 4 Pueblos tradicionales en grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <a href={l("/mapa")} class="bg-blanco dark:bg-zinc-800/90 rounded-2xl p-4 border border-secondary/10 dark:border-secondary/30 shadow-2xs hover:shadow-md hover:border-secondary/50 transition-all group">
+          <div class="flex items-center gap-2 text-secondary font-bold text-xs sm:text-sm mb-1">
+            <Icon name="lucide:map-pin" class="text-base text-secondary shrink-0 group-hover:scale-110 transition-transform" />
+            <span>{t("route.niquinohomo")}</span>
+          </div>
+          <p class="text-[11px] text-texto-secundario leading-snug">
+            {t("route.niquinohomo.desc")}
+          </p>
+        </a>
+
+        <a href={l("/mapa")} class="bg-blanco dark:bg-zinc-800/90 rounded-2xl p-4 border border-secondary/10 dark:border-secondary/30 shadow-2xs hover:shadow-md hover:border-secondary/50 transition-all group">
+          <div class="flex items-center gap-2 text-secondary font-bold text-xs sm:text-sm mb-1">
+            <Icon name="lucide:map-pin" class="text-base text-secondary shrink-0 group-hover:scale-110 transition-transform" />
+            <span>{t("route.sanjuan")}</span>
+          </div>
+          <p class="text-[11px] text-texto-secundario leading-snug">
+            {t("route.sanjuan.desc")}
+          </p>
+        </a>
+
+        <a href={l("/mapa")} class="bg-blanco dark:bg-zinc-800/90 rounded-2xl p-4 border border-secondary/10 dark:border-secondary/30 shadow-2xs hover:shadow-md hover:border-secondary/50 transition-all group">
+          <div class="flex items-center gap-2 text-secondary font-bold text-xs sm:text-sm mb-1">
+            <Icon name="lucide:map-pin" class="text-base text-secondary shrink-0 group-hover:scale-110 transition-transform" />
+            <span>{t("route.masatepe")}</span>
+          </div>
+          <p class="text-[11px] text-texto-secundario leading-snug">
+            {t("route.masatepe.desc")}
+          </p>
+        </a>
+
+        <a href={l("/mapa")} class="bg-blanco dark:bg-zinc-800/90 rounded-2xl p-4 border border-secondary/10 dark:border-secondary/30 shadow-2xs hover:shadow-md hover:border-secondary/50 transition-all group">
+          <div class="flex items-center gap-2 text-secondary font-bold text-xs sm:text-sm mb-1">
+            <Icon name="lucide:map-pin" class="text-base text-secondary shrink-0 group-hover:scale-110 transition-transform" />
+            <span>{t("route.masaya")}</span>
+          </div>
+          <p class="text-[11px] text-texto-secundario leading-snug">
+            {t("route.masaya.desc")}
+          </p>
+        </a>
+      </div>
+
+      <div>
+        <a
+          href={l("/mapa")}
+          class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary-dark text-white font-bold text-xs sm:text-sm py-3 px-6 rounded-xl shadow-xs transition-all"
+        >
+          <span>{t("route.cta")}</span>
+          <Icon name="lucide:compass" class="text-base" />
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Productos destacados -->
+<section id="productos" class="py-10">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl md:text-2xl font-bold text-texto">
+        {t("sections.featuredProducts")}
+      </h2>
+      <a
+        class="text-sm text-primary hover:text-primary-dark font-medium inline-flex items-center gap-1"
+        href={l("/productos")}
+      >
+        {t("actions.seeMoreProducts")}
+        <Icon name="lucide:arrow-right" class="text-base" />
+      </a>
+    </div>
+    {
+      products.items.length === 0 ? (
+        <p class="text-texto-secundario text-center py-8">
+          {t("product.empty")}
+        </p>
+      ) : (
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3">
+          {products.items.map((p) => {
+            const img = productImageUrl(p);
+            const storeName = p.expand?.store?.name;
+            const firstCategory = p.expand?.categories?.[0];
+            const stars = renderStars(p.rating_avg ?? 0);
+            return (
+              <a
+                href={l(`/productos/${p.slug}`)}
+                class="group bg-blanco rounded-xl overflow-hidden border border-borde hover:border-primary/40 hover:shadow-card transition-all flex flex-col"
+              >
+                <div class="relative aspect-square overflow-hidden bg-fondo">
+                  {img ? (
+                    <img
+                      src={img}
+                      alt={p.name}
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div class="absolute inset-0 flex items-center justify-center text-texto-secundario text-3xl">
+                      <Icon name="lucide:image" />
+                    </div>
+                  )}
+                  {firstCategory?.name && (
+                    <span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[10px] font-medium bg-blanco/95 backdrop-blur text-texto rounded-full max-w-[70%] truncate">
+                      {firstCategory.name}
+                    </span>
+                  )}
+                </div>
+                <div class="p-2.5 sm:p-3 flex-1 flex flex-col gap-1">
+                  {(p.rating_count ?? 0) > 0 && (
+                    <div class="flex items-center gap-1 text-[11px] text-texto-secundario">
+                      <span class="flex text-rating" aria-hidden="true">
+                        {stars.map((filled) => (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill={filled ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                          </svg>
+                        ))}
+                      </span>
+                      <span>({p.rating_count})</span>
+                    </div>
+                  )}
+                  <h3 class="text-sm font-medium text-texto line-clamp-1 leading-snug">
+                    {p.name}
+                  </h3>
+                  <p class="text-sm font-bold text-primary leading-tight">
+                    C$ {(p.price ?? 0).toFixed(2)}
+                  </p>
+                  {storeName && (
+                    <p class="text-[11px] text-texto-secundario truncate">
+                      {storeName}
+                    </p>
+                  )}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )
+    }
+  </div>
+</section>
+
+<!-- Tiendas destacadas -->
+<section id="tiendas" class="py-10">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl md:text-2xl font-bold text-texto">
+        {t("sections.featuredStores")}
+      </h2>
+      <a
+        class="text-sm text-primary hover:text-primary-dark font-medium inline-flex items-center gap-1"
+        href={l("/tiendas")}
+      >
+        {t("actions.seeMoreStores")}
+        <Icon name="lucide:arrow-right" class="text-base" />
+      </a>
+    </div>
+    {
+      stores.items.length === 0 ? (
+        <p class="text-texto-secundario text-center py-8">{t("store.empty")}</p>
+      ) : (
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3">
+          {stores.items.map((s) => {
+            const logo = storeLogoUrl(s);
+            return (
+              <a
+                href={l(`/tiendas/${s.slug}`)}
+                class="group bg-blanco rounded-xl overflow-hidden border border-borde hover:border-primary/40 hover:shadow-card transition-all flex flex-col"
+              >
+                <div class="relative aspect-square overflow-hidden bg-fondo flex items-center justify-center">
+                  {logo ? (
+                    <img
+                      src={logo}
+                      alt={s.name}
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div class="flex items-center justify-center w-full h-full text-texto-secundario text-3xl">
+                      <Icon name="lucide:store" />
+                    </div>
+                  )}
+                  {s.department && (
+                    <span class="absolute top-1.5 left-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium bg-blanco/95 backdrop-blur text-texto rounded-full">
+                      <Icon
+                        name="lucide:map-pin"
+                        class="text-[10px] text-primary"
+                      />
+                      {s.department}
+                    </span>
+                  )}
+                </div>
+                <div class="p-2.5 sm:p-3 flex-1 flex flex-col gap-0.5">
+                  <h3 class="text-sm font-semibold text-texto line-clamp-1">
+                    {s.name}
+                  </h3>
+                  {s.description && (
+                    <p class="text-xs text-texto-secundario line-clamp-2 leading-snug">
+                      {s.description}
+                    </p>
+                  )}
+                  {s.address_text && (
+                    <p class="text-[11px] text-texto-secundario inline-flex items-center gap-1 mt-auto pt-0.5 truncate">
+                      <Icon
+                        name="lucide:map-pin"
+                        class="text-[10px] shrink-0"
+                      />
+                      <span class="truncate">{s.address_text}</span>
+                    </p>
+                  )}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      )
+    }
+  </div>
+</section>
+
+<!-- News card -->
+<section class="py-10">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div
+      class="relative overflow-hidden bg-[linear-gradient(135deg,var(--news-card-grad-from)_0%,var(--news-card-grad-to)_100%)] rounded-2xl p-8 md:p-10 text-center shadow-card border border-borde"
+    >
+      <div
+        class="pointer-events-none absolute -top-10 -right-10 w-48 h-48 bg-primary/10 rounded-full blur-3xl"
+        aria-hidden="true"
+      >
+      </div>
+      <div class="relative">
+        <div class="text-4xl text-primary mb-3 inline-flex">
+          <Icon name="lucide:newspaper" />
+        </div>
+        <h2 class="text-2xl md:text-3xl font-bold text-texto mb-3">
+          {t("news.cardTitle")}
+        </h2>
+        <p class="text-texto-secundario mb-6 max-w-xl mx-auto">
+          {t("news.tagline")}
+        </p>
+        <a
+          href={l("/noticias")}
+          id="news-card-button"
+          class="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition-colors shadow-sm hover:shadow-md"
+        >
+          <Icon name="lucide:book-open" class="text-base" />
+          {t("actions.viewNews")}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

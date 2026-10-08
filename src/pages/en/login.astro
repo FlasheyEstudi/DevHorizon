@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import LoginContent from '../../components/pages/LoginContent.astro';
+---
+
+<AuthLayout title={`Log In — ArtesaNica`}>
+  <LoginContent lang="en" />
+</AuthLayout>

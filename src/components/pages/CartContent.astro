@@ -1,0 +1,373 @@
+---
+import { useTranslations, localizePath } from '../../i18n/utils';
+import type { Lang } from '../../i18n/ui';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const l = (path: string) => localizePath(path, lang);
+---
+
+<section class="py-12">
+  <div class="max-w-7xl mx-auto px-4">
+    <h1 class="text-3xl font-bold text-texto mb-8">{t('cart.title')}</h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
+      <div id="cart-items"></div>
+      <div id="cart-summary" class="hidden bg-blanco p-6 rounded-lg shadow-card h-fit">
+        <h3 class="text-xl font-semibold text-texto mb-4">{t('cart.summary')}</h3>
+        <div class="flex justify-between py-2">
+          <span>{t('cart.subtotal')}</span>
+          <span id="cart-subtotal">C$ 0.00</span>
+        </div>
+        <div class="flex justify-between py-2">
+          <span>{t('cart.shipping')}</span>
+          <span>{t('cart.shippingNote')}</span>
+        </div>
+        <div class="flex justify-between py-2 font-bold text-lg border-t border-gray-200 pt-3 mt-2">
+          <span>{t('cart.total')}</span>
+          <span id="cart-total">C$ 0.00</span>
+        </div>
+        <button id="checkout-btn" class="w-full mt-4 bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+          {t('actions.checkout')}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal de Checkout WhatsApp -->
+<div id="checkout-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-blanco rounded-xl shadow-2xl max-w-lg w-full p-6 relative border border-borde animate-in fade-in zoom-in duration-200">
+    <button id="close-modal-btn" class="absolute top-4 right-4 text-texto-secundario hover:text-texto p-1 rounded-full hover:bg-fondo transition-colors" aria-label="Cerrar">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+
+    <div class="flex items-center gap-3 mb-2">
+      <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold text-texto m-0">{t('cart.modal.title')}</h3>
+        <p class="text-texto-secundario text-xs m-0">{t('cart.modal.subtitle')}</p>
+      </div>
+    </div>
+
+    <form id="checkout-form" class="mt-4 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-texto mb-1">{t('cart.modal.fullName')} *</label>
+          <input type="text" id="buyer-name" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-primary text-sm" placeholder="Juan Pérez" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-texto mb-1">{t('cart.modal.phone')} *</label>
+          <input type="tel" id="buyer-phone" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-primary text-sm" placeholder="+505 8888 8888" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-texto mb-1">{t('cart.modal.department')} *</label>
+          <select id="buyer-department" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-blanco">
+            <option value="Masaya">Masaya</option>
+            <option value="Managua">Managua</option>
+            <option value="Granada">Granada</option>
+            <option value="Carazo">Carazo</option>
+            <option value="Rivas">Rivas</option>
+            <option value="León">León</option>
+            <option value="Chinandega">Chinandega</option>
+            <option value="Estelí">Estelí</option>
+            <option value="Matagalpa">Matagalpa</option>
+            <option value="Jinotega">Jinotega</option>
+            <option value="Madriz">Madriz</option>
+            <option value="Nueva Segovia">Nueva Segovia</option>
+            <option value="Boaco">Boaco</option>
+            <option value="Chontales">Chontales</option>
+            <option value="Río San Juan">Río San Juan</option>
+            <option value="RACCN">RACCN</option>
+            <option value="RACCS">RACCS</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-texto mb-1">{t('cart.modal.paymentMethod')} *</label>
+          <select id="buyer-payment" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-blanco">
+            <option value="cash">{t('cart.modal.paymentCash')}</option>
+            <option value="transfer">{t('cart.modal.paymentTransfer')}</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-texto mb-1">{t('cart.modal.address')} *</label>
+        <input type="text" id="buyer-address" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-primary text-sm" placeholder="Del parque central 2 c. al sur, casa #45" />
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-texto mb-1">{t('cart.modal.notes')}</label>
+        <textarea id="buyer-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary focus:border-primary text-sm" placeholder="Instrucciones para el artesano o de entrega..."></textarea>
+      </div>
+
+      <div id="checkout-error" class="hidden text-red-600 text-xs font-medium"></div>
+
+      <div class="pt-2 flex items-center justify-end gap-3 border-t border-gray-100 mt-4">
+        <button type="button" id="cancel-modal-btn" class="px-4 py-2 text-sm text-texto-secundario hover:text-texto rounded transition-colors">
+          {t('actions.cancel')}
+        </button>
+        <button type="submit" id="submit-checkout-btn" class="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white font-semibold text-sm rounded shadow transition-colors flex items-center gap-2">
+          <span>{t('cart.modal.submit')}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  import { cartItems, cartTotal, removeFromCart, clearCart } from '../../lib/stores/cart';
+  import { authUser, refreshAuth } from '../../lib/stores/auth';
+  import { getLangFromUrl, useTranslations, localizePath } from '../../i18n/utils';
+  import { csrfHeaders } from '../../lib/csrf-client';
+  import type { Lang } from '../../i18n/ui';
+
+  let lang: Lang = 'es';
+  let t = (key: string) => key;
+  let l = (path: string) => path;
+
+  // Escapa los valores que vienen de la base: el nombre y la imagen del
+  // producto los fija el vendedor, y este bloque los inserta con innerHTML.
+  function escapeHtml(value: unknown): string {
+    return String(value ?? '').replace(/[&<>"']/g, (c) =>
+      c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '"' ? '&quot;' : '&#39;'
+    );
+  }
+
+  // Sanitiza URLs de imagen para prevenir esquemas peligrosos como javascript:
+  function sanitizeImageUrl(url: unknown): string {
+    const str = String(url ?? '').trim();
+    if (/^(https?:\/\/|\/|data:image\/)/i.test(str)) {
+      return escapeHtml(str);
+    }
+    return '';
+  }
+
+  function render() {
+    const itemsEl = document.getElementById('cart-items');
+    const summaryEl = document.getElementById('cart-summary');
+    const subtotalEl = document.getElementById('cart-subtotal');
+    const totalEl = document.getElementById('cart-total');
+    if (!itemsEl || !summaryEl || !subtotalEl || !totalEl) return;
+
+    const items = cartItems.get();
+    if (items.length === 0) {
+      itemsEl.innerHTML = `<p class="text-texto-secundario py-12 text-center">${t('cart.empty')} <a href="${l('/productos')}" class="text-primary hover:text-primary-dark font-medium">${t('cart.viewProducts')}</a></p>`;
+      summaryEl.classList.add('hidden');
+      return;
+    }
+    summaryEl.classList.remove('hidden');
+    itemsEl.innerHTML = items.map((item) => `
+      <div class="grid grid-cols-[80px_1fr_auto] gap-4 items-center p-4 bg-blanco rounded-lg mb-2 shadow-sm border border-gray-100">
+        ${sanitizeImageUrl(item.image) ? `<img src="${sanitizeImageUrl(item.image)}" alt="${escapeHtml(item.name ?? '')}" class="w-20 h-20 object-cover rounded" />` : `<div class="w-20 h-20 bg-borde flex items-center justify-center text-texto-secundario rounded"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`}
+        <div>
+          <h4 class="m-0 mb-1 text-texto font-semibold">${escapeHtml(item.name ?? 'Producto')}</h4>
+          <p class="text-texto-secundario text-sm m-0">C$ ${(item.price ?? 0).toFixed(2)} x ${item.quantity}</p>
+        </div>
+        <button class="bg-transparent border-0 text-role-admin cursor-pointer p-2 hover:opacity-70 transition-opacity" data-product-id="${escapeHtml(item.productId)}" aria-label="Remove">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
+      </div>
+    `).join('');
+
+    subtotalEl.textContent = `C$ ${cartTotal.get().toFixed(2)}`;
+    totalEl.textContent = `C$ ${cartTotal.get().toFixed(2)}`;
+
+    itemsEl.querySelectorAll('[data-product-id]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const productId = (btn as HTMLElement).dataset.productId!;
+        removeFromCart(productId);
+      });
+    });
+  }
+
+  // Se suscribe una vez a nivel de módulo
+  cartItems.subscribe(render);
+  cartTotal.subscribe(() => {
+    const subtotalEl = document.getElementById('cart-subtotal');
+    const totalEl = document.getElementById('cart-total');
+    if (subtotalEl && totalEl) {
+      subtotalEl.textContent = `C$ ${cartTotal.get().toFixed(2)}`;
+      totalEl.textContent = `C$ ${cartTotal.get().toFixed(2)}`;
+    }
+  });
+
+  async function initCart() {
+    lang = getLangFromUrl(new URL(window.location.href));
+    t = useTranslations(lang);
+    l = (path: string) => localizePath(path, lang);
+
+    await refreshAuth();
+    render();
+
+    const checkoutBtn = document.getElementById('checkout-btn');
+    const modal = document.getElementById('checkout-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const cancelModalBtn = document.getElementById('cancel-modal-btn');
+    const checkoutForm = document.getElementById('checkout-form') as HTMLFormElement | null;
+    const checkoutError = document.getElementById('checkout-error');
+    const submitBtn = document.getElementById('submit-checkout-btn') as HTMLButtonElement | null;
+
+    const hideModal = () => {
+      modal?.classList.add('hidden');
+      if (checkoutError) checkoutError.classList.add('hidden');
+    };
+
+    closeModalBtn?.addEventListener('click', hideModal);
+    cancelModalBtn?.addEventListener('click', hideModal);
+
+    checkoutBtn?.addEventListener('click', () => {
+      const user = authUser.get();
+      if (!user) {
+        window.location.href = l(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
+
+      // Pre-llenar campos conocidos
+      const nameInput = document.getElementById('buyer-name') as HTMLInputElement | null;
+      const phoneInput = document.getElementById('buyer-phone') as HTMLInputElement | null;
+      if (nameInput && user.name) nameInput.value = user.name;
+      if (phoneInput && user.phone) phoneInput.value = user.phone;
+
+      modal?.classList.remove('hidden');
+    });
+
+    checkoutForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!submitBtn) return;
+
+      const name = (document.getElementById('buyer-name') as HTMLInputElement)?.value.trim();
+      const phone = (document.getElementById('buyer-phone') as HTMLInputElement)?.value.trim();
+      const department = (document.getElementById('buyer-department') as HTMLSelectElement)?.value;
+      const address = (document.getElementById('buyer-address') as HTMLInputElement)?.value.trim();
+      const paymentMethod = (document.getElementById('buyer-payment') as HTMLSelectElement)?.value;
+      const notes = (document.getElementById('buyer-notes') as HTMLTextAreaElement)?.value.trim();
+
+      if (!name || !phone || !address || !department) {
+        if (checkoutError) {
+          checkoutError.textContent = 'Por favor complete todos los campos requeridos.';
+          checkoutError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>${t('cart.modal.sending')}</span>`;
+
+      try {
+        const items = cartItems.get();
+        const total = cartTotal.get();
+
+        // 1. Crear orden via API backend
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...csrfHeaders(),
+          },
+          body: JSON.stringify({
+            shipping_address: {
+              name,
+              phone,
+              address,
+              city: department,
+              department,
+            },
+            payment_method: paymentMethod,
+            notes,
+            items: items.map((it) => ({
+              productId: it.productId,
+              quantity: it.quantity,
+              name: it.name,
+              price: it.price,
+              image: it.image,
+            })),
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Error al procesar la orden');
+        }
+
+        const data = await res.json();
+        const orderData = data.order || {};
+        const orderId = orderData.id || '';
+        const orderItems: Array<{ name?: string; quantity: number; price?: number }> = (orderData.items && orderData.items.length > 0) ? orderData.items : items;
+        const orderTotal = typeof orderData.total === 'number' ? orderData.total : cartTotal.get();
+
+        // 2. Construir mensaje en WhatsApp profesional y bien formateado en Córdobas (C$)
+        const paymentLabel = paymentMethod === 'cash' ? t('cart.modal.paymentCash') : t('cart.modal.paymentTransfer');
+
+        const itemsText = orderItems
+          .map((it) => {
+            const p = Number(it.price ?? 0);
+            const q = Number(it.quantity ?? 1);
+            return `  • *${it.name || 'Producto'}* x${q}\n    └ C$ ${p.toFixed(2)} c/u = *C$ ${(p * q).toFixed(2)}*`;
+          })
+          .join('\n\n');
+
+        const flagEmoji = '\uD83C\uDDF3\uD83C\uDDEE';
+        const userEmoji = '\uD83D\uDC64';
+        const phoneEmoji = '\uD83D\uDCDE';
+        const mapEmoji = '\uD83D\uDCCD';
+        const cardEmoji = '\uD83D\uDCB3';
+        const noteEmoji = '\uD83D\uDCDD';
+        const boxEmoji = '\uD83D\uDCE6';
+        const moneyEmoji = '\uD83D\uDCB5';
+        const checkEmoji = '\u2705';
+
+        const waMessage = `${flagEmoji} *NUEVO PEDIDO EN ARTESANICA* ${flagEmoji}
+${orderId ? `${checkEmoji} *Orden #:* \`${orderId}\`\n` : ''}═════════════════════════
+${userEmoji} *Comprador:* ${name}
+${phoneEmoji} *Teléfono:* ${phone}
+${mapEmoji} *Dirección:* ${address}, ${department}
+${cardEmoji} *Pago:* ${paymentLabel}
+${notes ? `${noteEmoji} *Notas:* ${notes}\n` : ''}═════════════════════════
+${boxEmoji} *RESUMEN DEL PEDIDO:*
+
+${itemsText}
+
+═════════════════════════
+${moneyEmoji} *TOTAL FINAL: C$ ${orderTotal.toFixed(2)}*
+═════════════════════════
+
+¡Hola! Confirmo los detalles de mi pedido. Quedo atento a sus indicaciones para coordinar la entrega. ¡Muchas gracias!`;
+
+        let cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length === 8) {
+          cleanPhone = '505' + cleanPhone;
+        }
+        const waPhone = cleanPhone || '50588888888';
+        const waUrl = `https://api.whatsapp.com/send?phone=${waPhone}&text=${encodeURIComponent(waMessage)}`;
+
+        // 3. Abrir WhatsApp, limpiar carrito y redirigir a la página de confirmación/recibo
+        window.open(waUrl, '_blank');
+        clearCart();
+        hideModal();
+        if (orderId) {
+          window.location.href = l('/orden/' + orderId);
+        }
+      } catch (err: unknown) {
+        if (checkoutError) {
+          checkoutError.textContent = err instanceof Error ? err.message : 'Error inesperado.';
+          checkoutError.classList.remove('hidden');
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>${t('cart.modal.submit')}</span>`;
+      }
+    });
+  }
+
+  // Inicializar en carga directa y en navegaciones SPA (ClientRouter).
+  initCart();
+  document.addEventListener('astro:page-load', initCart);
+</script>

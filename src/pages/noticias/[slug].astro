@@ -1,0 +1,71 @@
+---
+export const prerender = false;
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { pb, pbFileUrl } from '../../lib/pocketbase';
+import { getLangFromUrl, useTranslations } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const { slug } = Astro.params;
+
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+interface NewsItem {
+  id: string;
+  collectionId: string;
+  title: string;
+  slug: string;
+  summary: string;
+  content: string;
+  image?: string;
+  created_at: string;
+}
+
+let news: NewsItem | null = null;
+
+if (slug && SLUG_PATTERN.test(slug)) {
+  try {
+    news = await pb.collection('news').getFirstListItem<NewsItem>(
+      pb.filter('slug = {:slug} && status = "published"', { slug })
+    );
+  } catch (e) {
+    // Not found
+  }
+}
+
+if (!news) {
+  return Astro.redirect('/noticias');
+}
+
+function formatNewsDate(dateStr?: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('es-NI', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+const imgUrl = news.image ? pbFileUrl(news.collectionId, news.id, news.image) : null;
+---
+
+<BaseLayout
+  title={`${news.title} — ArtesaNica`}
+  description={news.summary || undefined}
+  image={imgUrl}
+  ogType="article"
+>
+  <article class="py-12 max-w-4xl mx-auto px-4">
+    <a href="/noticias" class="text-primary hover:underline text-sm font-medium inline-flex items-center gap-1 mb-6">
+      &larr; {t('nav.news')}
+    </a>
+
+    <h1 class="text-3xl md:text-4xl font-bold text-texto mb-4">{news.title}</h1>
+    <p class="text-texto-secundario text-sm mb-8">
+      {formatNewsDate(news.created_at)}
+    </p>
+
+    {imgUrl && (
+      <img src={imgUrl} alt={news.title} class="w-full h-80 object-cover rounded-xl shadow-card mb-8" />
+    )}
+
+    <div class="prose max-w-none text-texto text-lg leading-relaxed space-y-4" set:html={news.content} />
+  </article>
+</BaseLayout>

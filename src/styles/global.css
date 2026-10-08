@@ -1,0 +1,892 @@
+/* ============================================================
+   Artesa Nica — Global Stylesheet
+   Tailwind CSS v4 con configuracion CSS-first (no tailwind.config.js)
+   ============================================================ */
+
+/* Poppins ahora se sirve via Astro Fonts API (self-hosted en /_astro/fonts).
+   El componente <Font> en BaseLayout.astro setea --font-poppins con un stack
+   optimizado (Poppins-fallback, Poppins, sans-serif). No requiere @import. */
+
+@import "tailwindcss";
+
+/* ------------------------------------------------------------
+   Design tokens — fuente unica de verdad
+   En Tailwind v4, las variables --color-* generan automaticamente
+   utilities (bg-primary, text-texto, etc.). Las --shadow-* generan
+   shadow-* y --font-* generan font-* y font-family en el body.
+   ------------------------------------------------------------ */
+@theme {
+  /* ============================================================
+     Paleta Oficial de ArtesaNica:
+     1. #B85536 — Terracota / Barro Artesanal (Primary)
+     2. #285375 — Azul Colonial / Añil Nicaragüense (Secondary)
+     3. #E2A349 — Ocre Dorado / Ámbar Artesanal (Accent / Tertiary)
+     ============================================================ */
+
+  /* Colores de marca - Primario (Terracota) */
+  --color-primary: #B85536;
+  --color-primary-dark: #9A4227;
+  --color-primary-light: #F7ECE8;
+  --color-primary-foreground: #ffffff;
+
+  /* Colores de marca - Secundario (Azul Añil / Colonial) */
+  --color-secondary: #285375;
+  --color-secondary-dark: #1D3E58;
+  --color-secondary-light: #EBF2F7;
+  --color-secondary-foreground: #ffffff;
+
+  /* Colores de marca - Terciario / Acento Cálido (Ocre / Ámbar) */
+  --color-tertiary: #E2A349;
+  --color-tertiary-dark: #C98B32;
+  --color-tertiary-light: #FDF6EC;
+  --color-tertiary-foreground: #1e293b;
+
+  /* Tokens de marca explícitos */
+  --color-brand-terracotta: #B85536;
+  --color-brand-blue: #285375;
+  --color-brand-amber: #E2A349;
+
+  /* Colores semanticos */
+  --color-texto: #1e293b;
+  --color-texto-secundario: #64748b;
+  --color-fondo: #f8fafc;
+  --color-blanco: #ffffff;
+  --color-borde: #e2e8f0;
+  --color-error: #ef4444;
+  --color-exito: #16a34a;
+  --color-info: #285375;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1e293b;
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: #0f172a;
+  --color-border: #e2e8f0;
+
+  /* Banners y superficies temáticas */
+  --color-banner-bg: #FAF3F0;
+  --color-banner-border: #F0D7CF;
+  --color-pill-bg: #ffffff;
+  --color-pill-border: #E8CFCA;
+
+  /* Acentos para categorias */
+  --color-accent-amber: #E2A349;
+  --color-accent-terracotta: #B85536;
+  --color-accent-blue: #285375;
+  --color-accent-violet: #8b5cf6;
+  --color-accent-pink: #ec4899;
+  --color-accent-red: #ef4444;
+
+  /* Footer (dark) */
+  --color-footer-bg: #0d1520;
+  --color-footer-text: #94a3b8;
+  --color-footer-border: #1e293b;
+
+  /* Roles (badges) */
+  --color-role-seller: #285375;
+  --color-role-admin: #B85536;
+  --color-status-success: #16a34a;
+  --color-favorite: #e11d48;
+  --color-rating: #E2A349;
+
+  /* Sombras recurrentes del diseno original */
+  --shadow-nav: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-balance: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* --font-poppins la define el componente <Font> de astro:assets
+     (self-host con fallback optimizado). Ver astro.config.mjs. */
+}
+
+/* ------------------------------------------------------------
+   Dark theme — se activa con la clase `.dark` en <html>.
+   Mantiene la identidad de marca (Terracota, Azul Añil, Ocre)
+   con variantes luminosas optimizadas para contraste AA/AAA sobre
+   fondos oscuros slate-añil.
+   ------------------------------------------------------------ */
+:root.dark {
+  /* Marca (variantes claras y vibrantes para alto contraste sobre dark slate/navy) */
+  --color-primary: #DE7D5F;
+  --color-primary-dark: #EAA088;
+  --color-primary-light: #331A13;
+  --color-primary-foreground: #0c131f;
+
+  --color-secondary: #5C93B8;
+  --color-secondary-dark: #7FAECB;
+  --color-secondary-light: #132435;
+  --color-secondary-foreground: #0c131f;
+
+  --color-tertiary: #F0B865;
+  --color-tertiary-dark: #F5CD8B;
+  --color-tertiary-light: #382810;
+  --color-tertiary-foreground: #0c131f;
+
+  --color-brand-terracotta: #DE7D5F;
+  --color-brand-blue: #5C93B8;
+  --color-brand-amber: #F0B865;
+
+  /* Neutrales invertidos a escala slate-añil */
+  --color-texto: #f1f5f9;
+  --color-texto-secundario: #94a3b8;
+  --color-fondo: #0c131f;
+  --color-blanco: #16202e;
+  --color-borde: #253346;
+  --color-error: #f87171;
+  --color-exito: #4ade80;
+  --color-info: #5C93B8;
+  --color-popover: #16202e;
+  --color-popover-foreground: #f1f5f9;
+  --color-accent: #253346;
+  --color-accent-foreground: #f8fafc;
+  --color-border: #253346;
+
+  /* Banners y superficies temáticas en dark */
+  --color-banner-bg: #1c1514;
+  --color-banner-border: #3d241c;
+  --color-pill-bg: #16202e;
+  --color-pill-border: #2e3b4e;
+
+  /* Acentos (mas luminosos para dark) */
+  --color-accent-amber: #F0B865;
+  --color-accent-terracotta: #DE7D5F;
+  --color-accent-blue: #5C93B8;
+  --color-accent-violet: #a78bfa;
+  --color-accent-pink: #f472b6;
+  --color-accent-red: #f87171;
+
+  /* Roles y badges — afinados al dark */
+  --color-role-seller: #5C93B8;
+  --color-role-admin: #DE7D5F;
+  --color-status-success: #34d399;
+  --color-favorite: #fb7185;
+  --color-rating: #F0B865;
+
+  /* Sombras mas profundas (sobre dark las sombras necesitan mas alpha) */
+  --shadow-nav: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-balance: 0 4px 20px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+/* Light: explicit (default) */
+:root {
+  color-scheme: light;
+
+  /* Hero gradient (se reusa en HomeContent para que se adapte a dark) */
+  --hero-grad-from: #FAF3F0;
+  --hero-grad-mid: #F5EAE6;
+  --hero-grad-to: #f8fafc;
+
+  /* News card gradient */
+  --news-card-grad-from: #f8fafc;
+  --news-card-grad-to: #EBF2F7;
+}
+
+:root.dark {
+  --hero-grad-from: #1c1514;
+  --hero-grad-mid: #16202e;
+  --hero-grad-to: #0c131f;
+
+  --news-card-grad-from: #16202e;
+  --news-card-grad-to: #111a26;
+}
+
+/* Breakpoint custom xs (480px) — los default de Tailwind cubren sm/md/lg/xl */
+@custom-variant xs (@media (min-width: 480px));
+
+/* Dark mode: activado por la clase `.dark` en <html>.
+   Habilita utilities como `dark:bg-fondo`, `dark:text-texto`, etc. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------
+   Base layer: reset minimo y tipografia
+   ------------------------------------------------------------ */
+@layer base {
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-poppins, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    color: var(--color-texto);
+    background-color: var(--color-fondo);
+    margin: 0;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  /* ------------------------------------------------------------
+     shadcn/ui CSS variables — puente a los tokens del @theme.
+     Los tokens `--color-*` definidos arriba son la fuente unica
+     de verdad; shadcn espera `--background`, `--primary`, etc.
+     y los referenciamos aca para mantener una sola paleta.
+     ------------------------------------------------------------ */
+  :root {
+    --background: var(--color-blanco);
+    --foreground: var(--color-texto);
+    --card: var(--color-blanco);
+    --card-foreground: var(--color-texto);
+    --popover: var(--color-blanco);
+    --popover-foreground: var(--color-texto);
+    --primary: var(--color-primary);
+    --primary-foreground: var(--color-primary-foreground);
+    --secondary: var(--color-secondary);
+    --secondary-foreground: var(--color-secondary-foreground);
+    --muted: var(--color-fondo);
+    --muted-foreground: var(--color-texto-secundario);
+    --accent: var(--color-fondo);
+    --accent-foreground: var(--color-texto);
+    --destructive: var(--color-error);
+    --destructive-foreground: var(--color-blanco);
+    --border: var(--color-borde);
+    --input: var(--color-borde);
+    --ring: var(--color-primary);
+    --radius: 0.5rem;
+  }
+
+  :root.dark {
+    --background: var(--color-fondo);
+    --foreground: var(--color-texto);
+    --card: var(--color-blanco);
+    --card-foreground: var(--color-texto);
+    --popover: var(--color-blanco);
+    --popover-foreground: var(--color-texto);
+    --primary: var(--color-primary);
+    --primary-foreground: var(--color-primary-foreground);
+    --secondary: var(--color-secondary);
+    --secondary-foreground: var(--color-secondary-foreground);
+    --muted: var(--color-borde);
+    --muted-foreground: var(--color-texto-secundario);
+    --accent: var(--color-borde);
+    --accent-foreground: var(--color-texto);
+    --destructive: var(--color-error);
+    --destructive-foreground: var(--color-blanco);
+    --border: var(--color-borde);
+    --input: var(--color-borde);
+    --ring: var(--color-primary);
+  }
+}
+
+/* ------------------------------------------------------------
+   Scrollbar — alineado con la paleta de marca (primary + secondary)
+   Firefox: scrollbar-width/color. WebKit: pseudo-elementos.
+   ------------------------------------------------------------ */
+@layer base {
+
+  /* Previene el salteo/flickering (layout shift) al abrir dropdowns o modales.
+     `scrollbar-gutter: stable` reserva el espacio de la barra aunque no haya scroll. */
+  html {
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--color-primary) 60%, transparent) transparent;
+  }
+
+  /* Cuando react-remove-scroll (usado internamente por Radix UI Select/Dialog)
+     bloquea el scroll del body, inyecta margin-right o padding-right
+     compensatorio y overflow: hidden, provocando que el layout entero salte
+     hacia la izquierda (layout shift). Forzamos margin-right: 0, padding-right: 0
+     y overflow-y: scroll para que la barra y el body se mantengan 100% inmóviles. */
+  html body[data-scroll-locked],
+  body[data-scroll-locked] {
+    overflow-y: scroll !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* WebKit / Blink (Chrome, Edge, Safari) — scrollbar sutil e integrada */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--color-primary) 50%, transparent);
+    border-radius: 9999px;
+    transition: background-color 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-primary);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+/* ------------------------------------------------------------
+   Theme transition (light <-> dark)
+   Cross-dissolve sutil: solo opacidad, sin movimiento ni blur.
+   180ms con ease-in-out — apenas perceptible, suficiente para
+   suavizar el cambio de paleta sin hacer un show.
+   Se activa solo cuando <html data-theme-transitioning="1"> esta
+   presente — las navegaciones de Astro (ClientRouter) siguen usando
+   su cross-fade por defecto.
+   ------------------------------------------------------------ */
+@keyframes theme-fade-old {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes theme-fade-new {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+html[data-theme-transitioning='1']::view-transition-old(root) {
+  animation: theme-fade-old 180ms ease-in-out forwards;
+}
+
+html[data-theme-transitioning='1']::view-transition-new(root) {
+  animation: theme-fade-new 180ms ease-in-out forwards;
+}
+
+/* Micro-rotacion del icono del toggle: acknowledge del click sin
+   ser teatral. Solo el <i> dentro del boton rota + un leve scale. */
+#theme-toggle-desktop i,
+#theme-toggle-mobile i {
+  display: inline-block;
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+#theme-toggle-desktop.is-spinning i,
+#theme-toggle-mobile.is-spinning i {
+  transform: rotate(180deg) scale(0.85);
+}
+
+/* Respeta la preferencia de movimiento reducido del SO */
+@media (prefers-reduced-motion: reduce) {
+
+  html[data-theme-transitioning='1']::view-transition-old(root),
+  html[data-theme-transitioning='1']::view-transition-new(root),
+  #theme-toggle-desktop i,
+  #theme-toggle-mobile i {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------
+   Auth pages — animación de entrada
+   Replica el motion.div de Framer Motion usado por NicaExplora:
+     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+     transition={{ duration: 0.5 }}
+   Más un slide-in para el panel izquierdo y un pop-in para los
+   mensajes success/error (NicaExplora: scale 0.95 -> 1, opacity 0 -> 1).
+   ------------------------------------------------------------ */
+@keyframes auth-fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-fade-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes auth-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.auth-anim-form {
+  animation: auth-fade-slide-up 500ms ease-out both;
+}
+
+.auth-anim-panel {
+  animation: auth-fade-slide-in-left 500ms ease-out both;
+}
+
+.auth-anim-pop {
+  animation: auth-pop-in 300ms ease-out both;
+}
+
+/* Respeta la preferencia de movimiento reducido también para las auth anims */
+@media (prefers-reduced-motion: reduce) {
+
+  .auth-anim-form,
+  .auth-anim-panel,
+  .auth-anim-pop {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------
+   Drawer animation (perfil / productos)
+   Slide-in desde la derecha con fade sutil.
+   ------------------------------------------------------------ */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[slide-in-right_0\.2s_ease-out\] {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   MAPA — overrides para Leaflet + estilos custom del MapExperience
+   ============================================================ */
+
+/* ============================================================
+   Custom Leaflet Markers & Clusters — Stitch Design System
+   ============================================================ */
+
+/* Wrapper neutro de Leaflet */
+.map-marker-wrapper {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.map-marker {
+  position: relative;
+  width: 38px;
+  height: 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+  cursor: pointer;
+}
+
+/* Cuerpo del pin (Círculo + punta de flecha con sombra continua) */
+.map-marker-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28));
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease;
+  will-change: transform;
+}
+
+.map-marker:hover .map-marker-body,
+.map-marker.is-highlighted .map-marker-body {
+  transform: scale(1.15) translateY(-3px);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.38));
+  z-index: 1000;
+}
+
+.map-marker.is-selected .map-marker-body {
+  transform: scale(1.22) translateY(-4px);
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45));
+  z-index: 1010;
+}
+
+/* Insignia circular del pin */
+.map-marker-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  position: relative;
+  z-index: 2;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35);
+}
+
+/* Punta inferior del pin (rotada a 45 grados) */
+.map-marker-tip {
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  margin-top: -6px;
+  border-bottom-right-radius: 2px;
+  z-index: 1;
+}
+
+/* Icono vectorial de alto contraste dentro del pin */
+.map-marker-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+.map-marker-icon svg {
+  display: block;
+}
+
+/* Insignia circular con logo personalizado */
+.map-marker-circle.is-logo-badge {
+  padding: 2px;
+}
+
+/* Disco blanco contenedor del logo de la tienda */
+.map-marker-logo-disc {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: #ffffff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.map-marker-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 9999px;
+  display: block;
+}
+
+.map-marker-fallback-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tooltip Pill flotante con nombre y punto de categoría (Stitch Pin Tooltip: "Los Briones") */
+.map-marker-pill {
+  position: absolute;
+  bottom: 46px;
+  left: 50%;
+  transform: translate(-50%, 6px) scale(0.9);
+  opacity: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+  z-index: 1000;
+  transition: opacity 0.18s ease-out, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dark .map-marker-pill {
+  background: rgba(22, 32, 46, 0.96);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.map-marker:hover .map-marker-pill,
+.map-marker.is-highlighted .map-marker-pill,
+.map-marker.is-selected .map-marker-pill {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+
+.map-marker-pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.map-marker-pill-text {
+  font-family: var(--font-poppins), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.dark .map-marker-pill-text {
+  color: #f8fafc;
+}
+
+/* Pulso animado para el pin enfocado desde la lista */
+.map-marker.is-highlighted:not(.is-selected)::before {
+  content: '';
+  position: absolute;
+  top: 19px;
+  left: 19px;
+  width: 38px;
+  height: 38px;
+  margin-top: -19px;
+  margin-left: -19px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  opacity: 0.6;
+  animation: map-marker-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes map-marker-ping {
+  0% { transform: scale(1); opacity: 0.6; }
+  75%, 100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* ============================================================
+   Cluster Nodes Artesanales (Stitch Design: "5+ TALLERES")
+   ============================================================ */
+.map-cluster-wrapper {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.map-cluster-node {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.map-cluster-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: rgba(184, 85, 54, 0.32);
+  animation: cluster-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes cluster-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.18); opacity: 0.35; }
+}
+
+.map-cluster-core {
+  position: relative;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: var(--color-primary, #B85536);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(184, 85, 54, 0.45);
+  transition: transform 0.15s ease-out;
+}
+
+.map-cluster-node:hover .map-cluster-core {
+  transform: scale(1.12);
+}
+
+.map-cluster-count {
+  font-family: var(--font-poppins), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.map-cluster-label {
+  font-family: var(--font-poppins), sans-serif;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* Override leaflet cluster default (lo importamos por compatibilidad
+   pero no usamos el CSS default gracias a iconCreateFunction custom). */
+.marker-cluster {
+  background-color: transparent;
+}
+.marker-cluster div {
+  background-color: transparent;
+  color: inherit;
+  font-family: inherit;
+}
+
+/* Leaflet popup — usar tokens del design system. */
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+  padding: 0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  background: var(--color-blanco);
+  color: var(--color-texto);
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background: var(--color-blanco);
+  color: var(--color-texto);
+  border: 1px solid var(--color-borde);
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  font-family: var(--font-poppins);
+}
+
+/* Evita que Leaflet fuerce su color azul #0078A8 a los enlaces dentro del popup */
+.leaflet-popup-content a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.leaflet-popup-tip {
+  background: var(--color-blanco);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+}
+
+.dark .leaflet-popup-tip {
+  background: var(--color-blanco);
+}
+
+.leaflet-popup-close-button {
+  color: var(--color-texto-secundario) !important;
+  font-size: 22px !important;
+  padding: 6px 10px !important;
+  top: 6px !important;
+  right: 6px !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9999px !important;
+  transition: all 0.15s ease !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: var(--color-texto) !important;
+  background-color: var(--color-fondo) !important;
+}
+
+/* Leaflet controls (zoom +/-, attribution) — ajustados al fondo. */
+.leaflet-control-zoom a {
+  background-color: var(--color-blanco) !important;
+  color: var(--color-texto) !important;
+  border-color: var(--color-borde) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: var(--color-fondo) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.85) !important;
+  font-family: var(--font-poppins);
+  font-size: 10px;
+  padding: 2px 6px !important;
+}
+
+/* Bottom-sheet drag handle. */
+.map-sheet-handle {
+  display: block;
+  width: 40px;
+  height: 4px;
+  background: var(--color-borde);
+  border-radius: 9999px;
+}
+
+/* FAB pulse animation (idle state). */
+@keyframes fab-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 color-mix(in oklab, var(--color-primary) 50%, transparent),
+      var(--shadow-modal);
+  }
+  50% {
+    box-shadow:
+      0 0 0 10px color-mix(in oklab, var(--color-primary) 0%, transparent),
+      var(--shadow-modal);
+  }
+}
+
+.animate-fab-pulse {
+  animation: fab-pulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fab-pulse,
+  .map-marker.is-highlighted::before {
+    animation: none;
+  }
+  .map-marker:hover,
+  .map-marker.is-highlighted,
+  .map-cluster:hover {
+    transform: none;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

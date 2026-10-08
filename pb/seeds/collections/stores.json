@@ -1,0 +1,167 @@
+[
+  {
+    "_key": "taller-maria-niquinohomo",
+    "_ownerRef": "maria",
+    "name": "Taller de María",
+    "slug": "taller-maria-niquinohomo",
+    "description": "Cerámica tradicional de Niquinohomo desde 1987. Cada pieza es torneada a mano y cocida en horno de leña, siguiendo las técnicas que nos heredaron nuestras abuelas.",
+    "address_text": "Niquinohomo, Masaya",
+    "department": "Masaya",
+    "category": "ceramica",
+    "location": { "lon": -86.0961, "lat": 11.9744 }
+  },
+  {
+    "_key": "casa-bordados-granada",
+    "_ownerRef": "jose",
+    "name": "Casa de Bordados Granada",
+    "slug": "casa-bordados-granada",
+    "description": "Bordados a mano con hilos de seda natural sobre lino. Trabajamos con técnicas coloniales reinterpretadas: cada puntada lleva horas de oficio y cariño.",
+    "address_text": "Calle La Calzada, Granada",
+    "department": "Granada",
+    "category": "textil",
+    "location": { "lon": -85.9566, "lat": 11.9297 }
+  },
+  {
+    "_key": "madera-viva-leon",
+    "_ownerRef": "carlos",
+    "name": "Madera Viva",
+    "slug": "madera-viva-leon",
+    "description": "Tallas en madera de guayacán y cedro. Tallamos figuras, santos y utensilios, dejando que la madera cuente su propia historia.",
+    "address_text": "Centro histórico, León",
+    "department": "León",
+    "category": "madera",
+    "location": { "lon": -86.8782, "lat": 12.4379 }
+  },
+  {
+    "_key": "cesteria-madre-tierra",
+    "_ownerRef": "elena",
+    "name": "Cestería Madre Tierra",
+    "slug": "cesteria-madre-tierra",
+    "description": "Cestas y sombreros de fibra de pino y junco. Cooperativa de mujeres artesanas de San Ramón, Matagalpa.",
+    "address_text": "San Ramón, Matagalpa",
+    "department": "Matagalpa",
+    "category": "cesteria",
+    "location": { "lon": -85.9173, "lat": 12.925 }
+  },
+  {
+    "_key": "joyeria-volcanica",
+    "_ownerRef": "felix",
+    "name": "Joyería Volcánica",
+    "slug": "joyeria-volcanica",
+    "description": "Joyas en piedra volcánica y plata. Cada pieza nace del encuentro entre el fuego de nuestros volcanes y la paciencia del platero.",
+    "address_text": "Carretera a Masaya km 12",
+    "department": "Managua",
+    "category": "joyeria",
+    "location": { "lon": -86.2704, "lat": 12.1149 }
+  },
+  {
+    "_key": "textiles-azules-esteli",
+    "_ownerRef": "sofia",
+    "name": "Textiles Azules",
+    "slug": "textiles-azules-esteli",
+    "description": "Tejidos en índigo natural con telar de madera. El azul profundo viene del año que dedicamos a fermentar la planta hasta lograr el tono justo.",
+    "address_text": "Barrio El Calvario, Estelí",
+    "department": "Estelí",
+    "category": "textil",
+    "location": { "lon": -86.3539, "lat": 13.0928 }
+  },
+  {
+    "_key": "cuero-herencia-boaco",
+    "_ownerRef": "roberto",
+    "name": "Cuero y Herencia",
+    "slug": "cuero-herencia-boaco",
+    "description": "Mochilas, cinturones y bolsos de cuero curtido artesanal. Trabajamos el cuero con tanino vegetal para que envejezca con dignidad.",
+    "address_text": "Boaco centro",
+    "department": "Boaco",
+    "category": "cuero",
+    "location": { "lon": -85.6589, "lat": 12.4694 }
+  },
+  {
+    "_key": "ceramica-jinotega",
+    "_ownerRef": "carmen",
+    "name": "Cerámica de las Brumas",
+    "slug": "ceramica-jinotega",
+    "description": "Cerámica negra con técnicas precolombinas. Quemamos las piezas en hornos cerrados con humo para lograr ese negro profundo.",
+    "address_text": "Valle de Jinotega",
+    "department": "Jinotega",
+    "category": "ceramica",
+    "location": { "lon": -85.9947, "lat": 13.0883 }
+  },
+  {
+    "_key": "barro-rojo-tipitapa",
+    "_ownerRef": "miguel",
+    "name": "Barro Rojo",
+    "slug": "barro-rojo-tipitapa",
+    "description": "Artesanía en barro rojo pulido. Usamos técnicas de la zona de Tipitapa: bruñido con piedra antes de la cocción para un acabado espejo.",
+    "address_text": "Tipitapa, Managua",
+    "department": "Managua",
+    "category": "ceramica",
+    "location": { "lon": -86.1449, "lat": 12.1978 }
+  },
+  {
+    "_key": "tallas-carazo",
+    "_ownerRef": "lucia",
+    "name": "Tallas Carazo",
+    "slug": "tallas-carazo",
+    "description": "Figuras talladas en madera de pochote. La madera de pochote es blanda y noble, perfecta para los detalles de cada rostro y cada pliegue.",
+    "address_text": "Jinotepe, Carazo",
+    "department": "Carazo",
+    "category": "madera",
+    "location": { "lon": -86.1333, "lat": 11.7333 }
+  },
+  {
+    "_key": "fibras-rivas",
+    "_ownerRef": "pedro",
+    "name": "Fibras del Pacífico",
+    "slug": "fibras-rivas",
+    "description": "Hamacas y tapices de algodón y pita. Trabajamos con fibras teñidas en nuestra propia tintorería con plantas locales.",
+    "address_text": "San Juan del Sur, Rivas",
+    "department": "Rivas",
+    "category": "textil",
+    "location": { "lon": -85.8373, "lat": 11.4372 }
+  },
+  {
+    "_key": "madera-san-carlos",
+    "_ownerRef": "juan",
+    "name": "Maderas del San Juan",
+    "slug": "madera-san-carlos",
+    "description": "Muebles rústicos en madera de caoba. Cada pieza se construye con ensambles, sin clavos, para que dure generaciones.",
+    "address_text": "San Carlos, Río San Juan",
+    "department": "Río San Juan",
+    "category": "madera",
+    "location": { "lon": -84.7747, "lat": 11.1967 }
+  },
+  {
+    "_key": "arte-rama",
+    "_ownerRef": "isabel",
+    "name": "Arte en Rama",
+    "slug": "arte-rama",
+    "description": "Esculturas en madera y raíces. Trabajamos con las formas que la naturaleza ya esculpió, dejando que la guía de cada pieza la dé el material mismo.",
+    "address_text": "Chinandega centro",
+    "department": "Chinandega",
+    "category": "madera",
+    "location": { "lon": -87.15, "lat": 12.6231 }
+  },
+  {
+    "_key": "hilados-silvestre",
+    "_ownerRef": "ana_seller",
+    "name": "Hilados Silvestre",
+    "slug": "hilados-silvestre",
+    "description": "Hilados en lana y algodón con tintes naturales. De la oveja al ovillo, todo el proceso lo hacemos en cooperativa.",
+    "address_text": "Juigalpa, Chontales",
+    "department": "Chontales",
+    "category": "textil",
+    "location": { "lon": -85.18, "lat": 11.94 }
+  },
+  {
+    "_key": "orfebreria-colonial",
+    "_ownerRef": "diego_seller",
+    "name": "Orfebrería Colonial",
+    "slug": "orfebreria-colonial",
+    "description": "Platería colonial y filigrana tradicional. Continuamos una tradición familiar que se remonta a cuatro generaciones en Granada.",
+    "address_text": "Frente al Parque Central, Granada",
+    "department": "Granada",
+    "category": "joyeria",
+    "location": { "lon": -85.9519, "lat": 11.9306 }
+  }
+]

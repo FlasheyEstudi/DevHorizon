@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# Build output
+dist/
+.astro/
+.vercel/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+.codegraph
+
+# Skill registry (cache local del harness)
+.atl/
+
+# Security (certificados auto-firmados legacy)
+ssl/
+
+# PocketBase local data (si se corre self-hosted localmente)
+pb_data/
+pb_migrations/backup/
+# PocketBase binary (descargar via pb/start.sh o GitHub releases)
+pb/pocketbase.exe
+pb/pocketbase
+pb/*.zip
+pb/pb.log
+pb/.pid
+pb/.notify/
+pb/CHANGELOG.md
+pb/LICENSE.md

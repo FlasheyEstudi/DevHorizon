@@ -1,0 +1,19 @@
+---
+import { useTranslations, localizePath } from '../../i18n/utils';
+import type { Lang } from '../../i18n/ui';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const l = (path: string) => localizePath(path, lang);
+---
+
+<section class="py-12">
+  <div class="max-w-7xl mx-auto px-4 text-center">
+    <h1 class="text-3xl font-bold text-texto mb-4">{t('store.notFound')}</h1>
+    <p class="text-texto-secundario mb-6">{t('store.notFoundDesc')}</p>
+    <a href={l('/tiendas')} class="inline-block bg-primary text-white px-6 py-3 rounded font-semibold hover:bg-primary-dark transition-colors">
+      {t('store.viewAll')}
+    </a>
+  </div>
+</section>

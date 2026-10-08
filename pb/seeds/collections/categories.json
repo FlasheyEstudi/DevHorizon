@@ -1,0 +1,72 @@
+[
+  {
+    "_key": "ceramica",
+    "name": "Cerámica",
+    "slug": "ceramica",
+    "description": "Piezas de cerámica artesanal, desde lo utilitario hasta lo decorativo.",
+    "icon": "🏺"
+  },
+  {
+    "_key": "textil",
+    "name": "Textil",
+    "slug": "textil",
+    "description": "Tejidos y telas elaboradas con técnicas tradicionales.",
+    "icon": "🧵"
+  },
+  {
+    "_key": "madera",
+    "name": "Madera",
+    "slug": "madera",
+    "description": "Tallas, figuras y muebles en maderas nicaragüenses.",
+    "icon": "🪵"
+  },
+  {
+    "_key": "cuero",
+    "name": "Cuero",
+    "slug": "cuero",
+    "description": "Mochilas, cinturones y accesorios en cuero curtido a mano.",
+    "icon": "👜"
+  },
+  {
+    "_key": "joyeria",
+    "name": "Joyería",
+    "slug": "joyeria",
+    "description": "Piezas únicas en plata, piedras volcánicas y filigrana.",
+    "icon": "💍"
+  },
+  {
+    "_key": "cesteria",
+    "name": "Cestería",
+    "slug": "cesteria",
+    "description": "Cestas y sombreros tejidos con fibras naturales.",
+    "icon": "🧺"
+  },
+  {
+    "_key": "fibras",
+    "name": "Fibras Naturales",
+    "slug": "fibras",
+    "description": "Hamacas, tapices y piezas en pita, algodón y otras fibras.",
+    "icon": "🌿"
+  },
+  {
+    "_key": "hamacas",
+    "name": "Hamacas",
+    "slug": "hamacas",
+    "description": "Hamacas tejidas a mano, listas para descansar.",
+    "icon": "🪢"
+  },
+  {
+    "_key": "bordados",
+    "name": "Bordados",
+    "slug": "bordados",
+    "description": "Bordados a mano con hilos de seda y algodón.",
+    "icon": "🪡"
+  },
+  {
+    "_key": "barro",
+    "name": "Alfarería",
+    "slug": "barro",
+    "description": "Piezas de barro rojo pulido y alfarería tradicional.",
+    "icon": "🏺"
+  }
+]

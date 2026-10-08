@@ -1,0 +1,115 @@
+[
+  {
+    "_key": "order-001",
+    "_userRef": "luis",
+    "_itemsRefs": [
+      { "_productRef": "olla-barro-tradicional", "quantity": 1 },
+      { "_productRef": "plato-decorativo-flores", "quantity": 1 }
+    ],
+    "status": "delivered",
+    "shipping_address": {
+      "full_name": "Luis Pérez",
+      "phone": "+505 8855 1111",
+      "address_line1": "Colonia Centro América, casa #123",
+      "city": "Managua",
+      "department": "Managua",
+      "country": "Nicaragua"
+    },
+    "payment_method": "cash",
+    "notes": "order-001"
+  },
+  {
+    "_key": "order-002",
+    "_userRef": "ana_buyer",
+    "_itemsRefs": [
+      { "_productRef": "mochila-cuero-viajero", "quantity": 1 }
+    ],
+    "status": "shipped",
+    "shipping_address": {
+      "full_name": "Ana Martínez",
+      "phone": "+505 8855 2222",
+      "address_line1": "Residencial Las Mercedes, casa 42",
+      "city": "Managua",
+      "department": "Managua",
+      "country": "Nicaragua"
+    },
+    "payment_method": "transfer",
+    "notes": "order-002"
+  },
+  {
+    "_key": "order-003",
+    "_userRef": "luis",
+    "_itemsRefs": [
+      { "_productRef": "collar-piedra-volcanica", "quantity": 1 },
+      { "_productRef": "aretes-plata-luna", "quantity": 1 }
+    ],
+    "status": "paid",
+    "shipping_address": {
+      "full_name": "Luis Pérez",
+      "phone": "+505 8855 1111",
+      "address_line1": "Colonia Centro América, casa #123",
+      "city": "Managua",
+      "department": "Managua",
+      "country": "Nicaragua"
+    },
+    "payment_method": "card",
+    "notes": "order-003"
+  },
+  {
+    "_key": "order-004",
+    "_userRef": "diego_buyer",
+    "_itemsRefs": [
+      { "_productRef": "rebozo-indigo", "quantity": 1 },
+      { "_productRef": "bufanda-indigo", "quantity": 1 }
+    ],
+    "status": "delivered",
+    "shipping_address": {
+      "full_name": "Diego Ruiz",
+      "phone": "+505 8855 3333",
+      "address_line1": "Barrio San Felipe, frente al colegio",
+      "city": "León",
+      "department": "León",
+      "country": "Nicaragua"
+    },
+    "payment_method": "cash",
+    "notes": "order-004"
+  },
+  {
+    "_key": "order-005",
+    "_userRef": "ana_buyer",
+    "_itemsRefs": [
+      { "_productRef": "cesta-pino-grande", "quantity": 2 },
+      { "_productRef": "sombrero-junco", "quantity": 2 }
+    ],
+    "status": "pending",
+    "shipping_address": {
+      "full_name": "Ana Martínez",
+      "phone": "+505 8855 2222",
+      "address_line1": "Residencial Las Mercedes, casa 42",
+      "city": "Managua",
+      "department": "Managua",
+      "country": "Nicaragua"
+    },
+    "payment_method": "transfer",
+    "notes": "order-005"
+  },
+  {
+    "_key": "order-006",
+    "_userRef": "carmen_buyer",
+    "_itemsRefs": [
+      { "_productRef": "hamaca-algodon", "quantity": 1 },
+      { "_productRef": "manta-algodon-gruesa", "quantity": 1 }
+    ],
+    "status": "shipped",
+    "shipping_address": {
+      "full_name": "Carmen Flores",
+      "phone": "+505 8855 4444",
+      "address_line1": "Reparto San Juan, casa 8",
+      "city": "Granada",
+      "department": "Granada",
+      "country": "Nicaragua"
+    },
+    "payment_method": "card",
+    "notes": "order-006"
+  }
+]

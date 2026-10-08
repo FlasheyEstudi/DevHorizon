@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ForgotPasswordContent from '../../components/pages/ForgotPasswordContent.astro';
+---
+
+<BaseLayout title={`Recover Password — ArtesaNica`} noindex={true}>
+  <ForgotPasswordContent lang="en" />
+</BaseLayout>

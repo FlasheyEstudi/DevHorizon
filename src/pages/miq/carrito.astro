@@ -1,0 +1,16 @@
+---
+export const prerender = false;
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CartContent from '../../components/pages/CartContent.astro';
+import { useTranslations } from '../../i18n/utils';
+
+const t = useTranslations('miq');
+
+if (!Astro.locals.user) {
+  return Astro.redirect(`/miq/login?next=${encodeURIComponent(Astro.url.pathname)}`);
+}
+---
+
+<BaseLayout title={`${t('cart.title')} — ArtesaNica`} noindex={true}>
+  <CartContent lang="miq" />
+</BaseLayout>

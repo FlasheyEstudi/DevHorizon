@@ -1,0 +1,12 @@
+---
+export const prerender = false;
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ForgotPasswordContent from '../components/pages/ForgotPasswordContent.astro';
+import { getLangFromUrl } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+---
+
+<BaseLayout title={`Recuperar contrasena — ArtesaNica`} noindex={true}>
+  <ForgotPasswordContent lang={lang} />
+</BaseLayout>

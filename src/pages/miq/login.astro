@@ -1,0 +1,12 @@
+---
+export const prerender = false;
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import LoginContent from '../../components/pages/LoginContent.astro';
+import { useTranslations } from '../../i18n/utils';
+
+const t = useTranslations('miq');
+---
+
+<AuthLayout title={`${t('auth.login.title')} — ArtesaNica`}>
+  <LoginContent lang="miq" />
+</AuthLayout>

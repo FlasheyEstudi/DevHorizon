@@ -1,0 +1,13 @@
+---
+export const prerender = false;
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductsListContent from '../../components/pages/ProductsListContent.astro';
+import { getLangFromUrl, useTranslations } from '../../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<BaseLayout title={`${t('catalog.title')} — ArtesaNica`}>
+  <ProductsListContent lang={lang} url={Astro.url} />
+</BaseLayout>

@@ -1,0 +1,15 @@
+---
+export const prerender = false;
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CartContent from '../../components/pages/CartContent.astro';
+
+// Belt-and-braces guard: middleware already redirects, but if the route is
+// ever rendered without middleware, fail closed.
+if (!Astro.locals.user) {
+  return Astro.redirect(`/en/login?next=${encodeURIComponent(Astro.url.pathname)}`);
+}
+---
+
+<BaseLayout title={`My Cart — ArtesaNica`} noindex={true}>
+  <CartContent lang="en" />
+</BaseLayout>

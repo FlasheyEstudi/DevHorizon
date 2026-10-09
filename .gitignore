@@ -36,6 +36,7 @@ ssl/
 
 # PocketBase local data (si se corre self-hosted localmente)
 pb_data/
+pb/backups/
 pb_migrations/backup/
 # PocketBase binary (descargar via pb/start.sh o GitHub releases)
 pb/pocketbase.exe

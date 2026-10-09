@@ -59,6 +59,8 @@ npm run build
 - 🏛️ **Arquitectura del Sistema y Flujos de Secuencia**: [docs/DIAGRAMA_ARQUITECTURA.md](docs/DIAGRAMA_ARQUITECTURA.md) | [Descargar PDF](docs/DIAGRAMA_ARQUITECTURA.pdf)
 - 💰 **Plan Financiero y Presupuesto de Infraestructura**: [docs/PRESUPUESTO_HACKATHON.md](docs/PRESUPUESTO_HACKATHON.md)
 - 🎨 **Sistema de Tokenización y Guía de Estilos**: [DESIGN.md](DESIGN.md)
+- 📄 **Documento de Entregables (Word)**: [docs/ENTREGABLES_HACKATHON.docx](docs/ENTREGABLES_HACKATHON.docx)
+- 🐳 **Infraestructura de producción (proxy inverso + contenedores)**: [docs/INFRA_PRODUCCION.md](docs/INFRA_PRODUCCION.md)
 
 ---
 
@@ -119,6 +121,15 @@ Artesa_Nica/
 │       ├── ui.ts              # Diccionario bilingüe de strings de interfaz (ES / EN)
 │       └── utils.ts           # Helpers de traducción y extracción de idioma
 ├── docs/                      # Documentación técnica, ER 3FN y presupuesto
+├── infra/                     # Despliegue autoalojado (nginx + Docker)
+│   ├── nginx/                 # nginx.conf, vhost :80, plantilla TLS, snippets
+│   ├── docker/                # Dockerfile de PocketBase y entrypoint
+│   ├── install-host.sh        # nginx + Docker + configuración (requiere sudo)
+│   ├── up.sh                  # levanta el stack de contenedores
+│   └── verify.sh              # verificación del despliegue (6 bloques)
+├── docker-compose.yml         # web (Astro SSR) + PocketBase en red interna
+├── Dockerfile                 # Imagen del frontend (adaptador @astrojs/node)
+├── astro.config.docker.mjs    # Config del build autoalojado (Vercel intacto)
 ├── public/                    # Activos estáticos, logos e iconografía
 ├── astro.config.mjs           # Configuración de Astro, Tailwind v4, i18n y CSP
 ├── components.json            # Configuración de componentes de UI
@@ -204,7 +215,7 @@ Todos los endpoints API están protegidos contra ataques CSRF y validan sus entr
 
 ---
 
-## 🚢 Despliegue en Vercel
+## 🚢 Despliegue en Vercel (escenario A — gestionado)
 
 1. Conecta el repositorio directamente en el dashboard de **Vercel**.
 2. **Root Directory**: Deja la raíz del repositorio (`./`).
@@ -214,6 +225,39 @@ Todos los endpoints API están protegidos contra ataques CSRF y validan sus entr
    - **Build Command**: `npm run build`
    - **Output Directory**: `.vercel/output`
    - **Node Version**: `22.x`
+
+---
+
+## 🐳 Despliegue autoalojado (escenario B — proxy inverso + contenedores)
+
+Alternativa completa para ejecutar ArtesaNica en un servidor propio (Arch/CachyOS)
+con **nginx** como proxy inverso y **Docker** para el aislamiento. No afecta al
+despliegue en Vercel: usa `astro.config.docker.mjs` (adaptador `@astrojs/node`)
+en lugar de `astro.config.mjs`.
+
+```bash
+sudo bash infra/install-host.sh     # nginx + Docker + configuración + firewall
+cp .env.docker.example .env.docker  # credenciales del superusuario
+bash infra/up.sh                    # construye y levanta los contenedores
+bash infra/verify.sh                # 6 bloques de comprobación
+```
+
+| Puerto | Servicio | Expuesto a | Función |
+| :--- | :--- | :--- | :--- |
+| **80 / 443** | nginx (borde) | Internet/LAN | Única entrada pública (CSP, rate limit, gzip, caché de estáticos). |
+| 4322 | contenedor `web` (Astro SSR) | sólo `127.0.0.1` | Renderizado SSR y `/api/*` (4321 dentro del contenedor). |
+| 8091 | contenedor `pocketbase` | sólo `127.0.0.1` | Datos, auth y archivos (8090 dentro del contenedor; el navegador los consume vía `/pb/api/files/`). |
+
+Los puertos del host son **4322** y **8091** (no 4321/8090) para poder convivir
+con el entorno de desarrollo, que ya usa esos números.
+
+Reglas clave: ningún contenedor publica puertos a la red (sólo loopback), el
+navegador nunca habla directo con PocketBase (imágenes por `/pb/`, mismo origen)
+y los secretos se leen en tiempo de ejecución, así que no quedan dentro de la
+imagen.
+
+📖 **Detalle completo** (mapa de puertos, variables, operación, TLS con certbot,
+solución de problemas y checklist): [docs/INFRA_PRODUCCION.md](docs/INFRA_PRODUCCION.md).
 
 ---
 

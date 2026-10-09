@@ -1,0 +1,120 @@
+# =============================================================================
+# ArtesaNica — stack autoalojado (nginx en el host + contenedores)
+# =============================================================================
+#   web         Astro SSR (adaptador Node)  -> contenedor, sólo loopback
+#   pocketbase  Base de datos + auth + files -> contenedor, sólo loopback
+#   nginx       Proxy inverso en el HOST (ver infra/nginx/) -> puerto 80/443
+#
+# Puertos EN EL HOST, distintos de los de desarrollo para poder coexistir:
+#   web        127.0.0.1:4322 -> 4321 dentro del contenedor (dev usa 4321)
+#   pocketbase 127.0.0.1:8091 -> 8090 dentro del contenedor (dev usa 8090)
+# Los puertos internos no cambian: la app y el SDK siguen hablando 4321/8090.
+#
+# Regla de oro: NINGÚN contenedor publica puertos hacia internet. Ambos se
+# publican en 127.0.0.1 para que nginx (que corre en el host) pueda alcanzarlos;
+# desde fuera sólo se llega por nginx.
+#
+# Uso:
+#   cp .env.docker.example .env.docker      # y completar credenciales
+#   docker compose --env-file .env.docker up -d --build
+#   docker compose --env-file .env.docker ps
+#
+# Ver docs/INFRA_PRODUCCION.md para el mapa completo de puertos y variables.
+# =============================================================================
+
+name: artesanica
+
+services:
+  # ---------------------------------------------------------------------------
+  # Base de datos, autenticación y almacenamiento de archivos
+  # ---------------------------------------------------------------------------
+  pocketbase:
+    build:
+      context: .
+      dockerfile: infra/docker/pocketbase.Dockerfile
+      args:
+        PB_VERSION: "0.27.2"
+    image: artesanica-pocketbase:0.27.2
+    container_name: artesanica-pb
+    restart: unless-stopped
+    init: true
+    environment:
+      PB_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL:?define POCKETBASE_ADMIN_EMAIL en .env.docker}
+      PB_ADMIN_PASSWORD: ${POCKETBASE_ADMIN_PASSWORD:?define POCKETBASE_ADMIN_PASSWORD en .env.docker}
+      PB_PORT: "8090"
+    volumes:
+      # Datos persistentes (SQLite + archivos subidos). Sobrevive a rebuilds.
+      - pb_data:/data
+      # Esquema y hooks versionados en el repositorio, montados en sólo lectura.
+      - ./pb/pb_migrations:/migrations:ro
+      - ./pb/pb_hooks:/hooks:ro
+    ports:
+      # SÓLO loopback: expuesto al host para nginx, invisible desde la red.
+      # 8091 en el host (no 8090, que usa el PocketBase de desarrollo).
+      - "127.0.0.1:8091:8090"
+    networks:
+      - interna
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8090/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Frontend Astro (SSR) — se sirve al navegador a través de nginx
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Ruta pública de PocketBase dentro del mismo origen (la publica nginx).
+        PUBLIC_POCKETBASE_URL: /pb
+    image: artesanica-web:latest
+    container_name: artesanica-web
+    restart: unless-stopped
+    init: true
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4321"
+      # --- server-side: nombre del servicio dentro de la red interna ---------
+      POCKETBASE_URL: http://pocketbase:8090
+      # --- navegador: mismo origen, proxeado por nginx ----------------------
+      PUBLIC_POCKETBASE_URL: /pb
+      # --- credenciales de superusuario (runtime; nunca al navegador) --------
+      POCKETBASE_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL:?}
+      POCKETBASE_ADMIN_PASSWORD: ${POCKETBASE_ADMIN_PASSWORD:?}
+      # --- origen permitido por la validación CSRF (tu dominio o IP) --------
+      PUBLIC_SITE_ORIGIN: ${PUBLIC_SITE_ORIGIN:-http://localhost}
+      PUBLIC_ALLOWED_ORIGINS: ${PUBLIC_ALLOWED_ORIGINS:-}
+    ports:
+      # SÓLO loopback: el tráfico público entra por nginx, nunca directo aquí.
+      # 4322 en el host (no 4321, que usa `astro dev`).
+      - "127.0.0.1:4322:4321"
+    networks:
+      - interna
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4321/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+networks:
+  # Red interna aislada: los contenedores se ven entre sí por nombre de servicio
+  # y no son alcanzables desde fuera del host.
+  interna:
+    driver: bridge
+
+volumes:
+  pb_data:
+    name: artesanica_pb_data

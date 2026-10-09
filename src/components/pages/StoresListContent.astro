@@ -2,7 +2,7 @@
 import { pbFileUrl, pocketbaseFor } from '../../lib/pocketbase';
 import { useTranslations, localizePath } from '../../i18n/utils';
 import type { Lang } from '../../i18n/ui';
-import type { RecordModel } from 'pocketbase';
+import type { ListResult, RecordModel } from 'pocketbase';
 import { Icon } from 'astro-icon/components';
 
 interface Props { lang: Lang; }
@@ -19,7 +19,24 @@ interface StoreRecord extends RecordModel {
   address_text?: string; category?: string; logo?: string;
 }
 
-const stores = await pbClient.collection('stores').getList<StoreRecord>(1, 50, { sort: '-created_at' });
+// Lectura defensiva: si PocketBase no responde (reinicio del servidor, corte
+// momentáneo o fallo de la conmutación a la nube) la página degrada al estado
+// vacío en lugar de romper el render completo. Mismo patrón que
+// NewsContent.astro y ProductsListContent.astro.
+// Contexto: el cliente SDK lanza `ClientResponseError 0` cuando el fetch no
+// obtiene respuesta, y al no estar capturado el error tumbaba todo el SSR.
+let stores: ListResult<StoreRecord> = {
+  page: 1,
+  perPage: 50,
+  totalItems: 0,
+  totalPages: 0,
+  items: [],
+};
+try {
+  stores = await pbClient.collection('stores').getList<StoreRecord>(1, 50, { sort: '-created_at' });
+} catch (e) {
+  console.error('Error fetching stores:', e);
+}
 
 function storeLogoUrl(s: StoreRecord): string | null {
   if (s.logo) return pbFileUrl(s.collectionId, s.id, s.logo);

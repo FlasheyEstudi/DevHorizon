@@ -1,0 +1,48 @@
+# =============================================================================
+# .dockerignore — qué NO entra en el contexto de build de la imagen
+# =============================================================================
+# Objetivo: builds reproducibles y rápidos, sin secretos ni artefactos locales.
+
+# Dependencias y artefactos (se reconstruyen dentro de la imagen)
+node_modules
+dist
+.astro
+.vercel
+
+# Control de versiones y metadatos
+.git
+.gitignore
+.github
+
+# Secretos y configuración local (¡nunca dentro de una imagen!)
+.env
+.env.local
+.env.*.local
+.env.docker
+
+# Datos y binarios de PocketBase (el contenedor de PB usa su propio volumen)
+pb/pb_data
+pb/backups
+pb/pocketbase
+pb/pocketbase.exe
+pb/*.zip
+pb/pb.log
+pb/.pid
+
+# Documentación, plantillas y scripts que no afectan al build
+docs
+CHANGELOG.md
+DESIGN.md
+AGENTS.md
+CLAUDE.md
+release-please-config.json
+.release-please-manifest.json
+iniciar.sh
+iniciar.bat
+infra/nginx/conf.d/artesanica-tls.conf.example
+
+# Basura del sistema
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

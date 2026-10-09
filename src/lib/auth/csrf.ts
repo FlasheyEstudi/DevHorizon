@@ -18,6 +18,7 @@
 // =============================================================================
 
 import type { AstroCookies } from 'astro';
+import { runtimeEnv } from '../env';
 
 export const CSRF_COOKIE_NAME = 'csrf-token';
 export const CSRF_HEADER_NAME = 'x-csrf-token';
@@ -37,8 +38,14 @@ function getAllowedOrigins(request: Request): string[] {
   } catch {
     requestOrigin = '';
   }
-  const base = (import.meta.env.PUBLIC_SITE_ORIGIN ?? '').trim();
-  const extras = (import.meta.env.PUBLIC_ALLOWED_ORIGINS ?? '')
+  const base = runtimeEnv(
+    'PUBLIC_SITE_ORIGIN',
+    import.meta.env.PUBLIC_SITE_ORIGIN
+  ).trim();
+  const extras = runtimeEnv(
+    'PUBLIC_ALLOWED_ORIGINS',
+    import.meta.env.PUBLIC_ALLOWED_ORIGINS
+  )
     .split(',')
     .map((s: string) => s.trim())
     .filter(Boolean);

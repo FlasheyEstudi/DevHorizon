@@ -90,6 +90,7 @@ const nextParam = Astro.url.searchParams.get("next") ?? "";
         <!-- Google button slot (placeholder — implementacion OAuth real es scope futuro) -->
         <button
           type="button"
+          data-step-credentials
           onclick="alert('Próximamente — autenticación con Google')"
           class="w-full flex items-center justify-center gap-3 px-6 py-3 border border-borde rounded-lg bg-blanco text-texto font-medium hover:bg-fondo focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors"
         >
@@ -116,7 +117,7 @@ const nextParam = Astro.url.searchParams.get("next") ?? "";
         </button>
 
         <!-- Divider -->
-        <div class="flex items-center gap-3 my-6">
+        <div class="flex items-center gap-3 my-6" data-step-credentials>
           <div class="flex-1 h-px bg-borde"></div>
           <span
             class="text-xs text-texto-secundario uppercase tracking-wider whitespace-nowrap"
@@ -227,7 +228,88 @@ const nextParam = Astro.url.searchParams.get("next") ?? "";
           </p>
         </form>
 
-        <p class="text-center mt-8 text-sm text-texto-secundario">
+        <!-- Paso 2 del login: código TOTP / código de recuperación (2FA).
+             Se muestra solo si el servidor responde twoFactorRequired. -->
+        <form
+          id="login-2fa-form"
+          method="post"
+          novalidate
+          class="hidden flex flex-col gap-4"
+          data-step="two-factor"
+        >
+          <div class="flex flex-col gap-1.5">
+            <h2 class="text-lg font-semibold text-texto">
+              {t("auth.2fa.title")}
+            </h2>
+            <p class="text-sm text-texto-secundario">
+              {t("auth.2fa.subtitle")}
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="login-2fa-code" class="text-sm font-medium text-texto">
+              {t("auth.2fa.code")}
+            </label>
+            <div class="relative">
+              <Icon
+                name="lucide:shield-check"
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-texto-secundario text-lg pointer-events-none"
+                aria-hidden="true"
+              />
+              <input
+                id="login-2fa-code"
+                type="text"
+                name="code"
+                required
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="20"
+                placeholder="123456"
+                class="w-full pl-11 pr-4 py-2.5 border border-borde rounded-lg bg-blanco text-texto tracking-widest placeholder:tracking-normal placeholder:text-texto-secundario focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+              />
+            </div>
+            <p class="text-xs text-texto-secundario">
+              {t("auth.2fa.recoveryHint")}
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            id="login-2fa-submit"
+            class="mt-2 w-full bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+          >
+            <span data-label>{t("auth.2fa.submit")}</span>
+            <Icon
+              name="lucide:loader-circle"
+              class="text-lg animate-spin hidden"
+              data-spinner
+              aria-hidden="true"
+            />
+          </button>
+
+          <p
+            id="login-2fa-error"
+            role="alert"
+            aria-live="polite"
+            class="hidden text-error text-sm flex items-center gap-1"
+          >
+            <Icon name="lucide:alert-circle" class="text-base shrink-0" />
+            <span data-message></span>
+          </p>
+
+          <button
+            type="button"
+            id="login-2fa-back"
+            class="text-sm text-texto-secundario hover:text-primary font-medium transition-colors"
+          >
+            {t("auth.2fa.back")}
+          </button>
+        </form>
+
+        <p
+          class="text-center mt-8 text-sm text-texto-secundario"
+          data-step-credentials
+        >
           {t("auth.login.noAccount")}
           <a
             href={l("/registro")}
@@ -242,7 +324,7 @@ const nextParam = Astro.url.searchParams.get("next") ?? "";
 </section>
 
 <script>
-  import { login } from "../../lib/stores/auth";
+  import { login, verifyTwoFactor } from "../../lib/stores/auth";
   import { getLangFromUrl, localizePath } from "../../i18n/utils";
   import { ui } from "../../i18n/ui";
 
@@ -260,6 +342,9 @@ const nextParam = Astro.url.searchParams.get("next") ?? "";
     ) as HTMLButtonElement | null;
     if (!form || !errorEl || !submit) return;
 
+    // Alias no-null para los closures (TS pierde el narrowing de `form`).
+    const credentialsForm: HTMLFormElement = form;
+
     const labelEl = submit.querySelector("[data-label]") as HTMLElement | null;
     const spinnerEl = submit.querySelector(
       "[data-spinner]",
@@ -272,6 +357,12 @@ const nextParam = Astro.url.searchParams.get("next") ?? "";
     let showLabel = "Mostrar contraseña";
     let hideLabel = "Ocultar contraseña";
     let networkErr = "Error de red. Intenta de nuevo.";
+    let twoFactorInvalid = "Código incorrecto. Intenta de nuevo.";
+    let twoFactorLimited = "Demasiados intentos. Espera unos minutos.";
+    let twoFactorExpired =
+      "El desafío expiró. Vuelve a ingresar tu correo y contraseña.";
+    let twoFactorUnavailable =
+      "El segundo factor no está disponible en este momento.";
     let lang: "es" | "en" = "es";
     try {
       const detected = getLangFromUrl(new URL(window.location.href));
@@ -281,9 +372,43 @@ const nextParam = Astro.url.searchParams.get("next") ?? "";
         showLabel = dict["auth.showPassword"] || showLabel;
         hideLabel = dict["auth.hidePassword"] || hideLabel;
         networkErr = dict["auth.error.networkError"] || networkErr;
+        twoFactorInvalid = dict["auth.2fa.error.invalidCode"] || twoFactorInvalid;
+        twoFactorLimited =
+          dict["auth.2fa.error.rateLimited"] || twoFactorLimited;
+        twoFactorExpired = dict["auth.2fa.error.expired"] || twoFactorExpired;
+        twoFactorUnavailable =
+          dict["auth.2fa.error.unavailable"] || twoFactorUnavailable;
       }
     } catch (_) {
       /* fallback a defaults */
+    }
+
+    /** Mensaje localizado para los códigos de error del endpoint 2FA. */
+    function twoFactorMessage(code: string): string {
+      switch (code) {
+        case "invalid_code":
+          return twoFactorInvalid;
+        case "too_many_attempts":
+          return twoFactorLimited;
+        case "two_factor_challenge_expired":
+        case "two_factor_disabled":
+          return twoFactorExpired;
+        case "two_factor_unavailable":
+        case "auth_backend_unavailable":
+          return twoFactorUnavailable;
+        default:
+          return networkErr;
+      }
+    }
+
+    /** Destino posterior al login: `next` same-origin o la home del locale. */
+    function resolveTarget(): string {
+      const rawNext = new URLSearchParams(window.location.search).get("next");
+      const isSafeInternal =
+        typeof rawNext === "string" &&
+        rawNext.startsWith("/") &&
+        !rawNext.startsWith("//");
+      return isSafeInternal ? (rawNext as string) : localizePath("", lang);
     }
 
     // Toggle visibilidad de password.
@@ -306,6 +431,39 @@ const nextParam = Astro.url.searchParams.get("next") ?? "";
         });
       });
 
+    // --- Paso 2: verificación 2FA -------------------------------------------
+    const twoFactorForm = document.getElementById(
+      "login-2fa-form",
+    ) as HTMLFormElement | null;
+    const twoFactorErrorEl = document.getElementById("login-2fa-error");
+    const twoFactorSubmit = document.getElementById(
+      "login-2fa-submit",
+    ) as HTMLButtonElement | null;
+    const twoFactorBack = document.getElementById("login-2fa-back");
+    const twoFactorCodeInput = document.getElementById(
+      "login-2fa-code",
+    ) as HTMLInputElement | null;
+    const credentialOnly =
+      document.querySelectorAll<HTMLElement>("[data-step-credentials]");
+
+    function showTwoFactorStep() {
+      credentialsForm.classList.add("hidden");
+      credentialOnly.forEach((el) => el.classList.add("hidden"));
+      if (twoFactorForm) {
+        twoFactorForm.classList.remove("hidden");
+      }
+      twoFactorCodeInput?.focus();
+    }
+
+    function showCredentialsStep() {
+      twoFactorForm?.classList.add("hidden");
+      credentialsForm.classList.remove("hidden");
+      credentialOnly.forEach((el) => el.classList.remove("hidden"));
+      twoFactorErrorEl?.classList.add("hidden");
+      if (twoFactorCodeInput) twoFactorCodeInput.value = "";
+      document.getElementById("login-email")?.focus();
+    }
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       errorEl.classList.add("hidden");
@@ -320,16 +478,13 @@ const nextParam = Astro.url.searchParams.get("next") ?? "";
       labelEl.classList.add("hidden");
       spinnerEl.classList.remove("hidden");
 
-      const rawNext = new URLSearchParams(window.location.search).get("next");
-      const isSafeInternal =
-        typeof rawNext === "string" &&
-        rawNext.startsWith("/") &&
-        !rawNext.startsWith("//");
-      const target = isSafeInternal ? rawNext : localizePath("", lang);
-
       try {
-        await login(email, password);
-        window.location.href = target;
+        const result = await login(email, password);
+        if (result.twoFactorRequired) {
+          showTwoFactorStep();
+          return;
+        }
+        window.location.href = resolveTarget();
       } catch (err) {
         messageEl.textContent = err instanceof Error ? err.message : networkErr;
         errorEl.classList.remove("hidden");
@@ -340,6 +495,55 @@ const nextParam = Astro.url.searchParams.get("next") ?? "";
         spinnerEl.classList.add("hidden");
       }
     });
+
+    if (twoFactorForm && twoFactorSubmit && twoFactorErrorEl) {
+      const codeLabel = twoFactorSubmit.querySelector(
+        "[data-label]",
+      ) as HTMLElement | null;
+      const codeSpinner = twoFactorSubmit.querySelector(
+        "[data-spinner]",
+      ) as HTMLElement | null;
+      const codeMessage = twoFactorErrorEl.querySelector(
+        "[data-message]",
+      ) as HTMLElement | null;
+
+      twoFactorForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        twoFactorErrorEl.classList.add("hidden");
+        if (codeMessage) codeMessage.textContent = "";
+
+        const code = twoFactorCodeInput?.value.trim() ?? "";
+        if (!code) {
+          if (codeMessage) codeMessage.textContent = twoFactorInvalid;
+          twoFactorErrorEl.classList.remove("hidden");
+          return;
+        }
+
+        twoFactorSubmit.disabled = true;
+        twoFactorSubmit.setAttribute("aria-busy", "true");
+        codeLabel?.classList.add("hidden");
+        codeSpinner?.classList.remove("hidden");
+
+        try {
+          await verifyTwoFactor(code);
+          window.location.href = resolveTarget();
+        } catch (err) {
+          const raw = err instanceof Error ? err.message : "";
+          if (codeMessage) codeMessage.textContent = twoFactorMessage(raw);
+          twoFactorErrorEl.classList.remove("hidden");
+          if (twoFactorCodeInput) twoFactorCodeInput.value = "";
+        } finally {
+          twoFactorSubmit.disabled = false;
+          twoFactorSubmit.removeAttribute("aria-busy");
+          codeLabel?.classList.remove("hidden");
+          codeSpinner?.classList.add("hidden");
+        }
+      });
+
+      twoFactorBack?.addEventListener("click", () => {
+        showCredentialsStep();
+      });
+    }
   }
 
   if (document.readyState === "loading") {

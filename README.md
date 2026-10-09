@@ -59,6 +59,8 @@ npm run build
 - 🏛️ **Arquitectura del Sistema y Flujos de Secuencia**: [docs/DIAGRAMA_ARQUITECTURA.md](docs/DIAGRAMA_ARQUITECTURA.md) | [Descargar PDF](docs/DIAGRAMA_ARQUITECTURA.pdf)
 - 💰 **Plan Financiero y Presupuesto de Infraestructura**: [docs/PRESUPUESTO_HACKATHON.md](docs/PRESUPUESTO_HACKATHON.md)
 - 🎨 **Sistema de Tokenización y Guía de Estilos**: [DESIGN.md](DESIGN.md)
+- 📄 **Documento de Entregables (Word)**: [docs/ENTREGABLES_HACKATHON.docx](docs/ENTREGABLES_HACKATHON.docx)
+- 🐳 **Infraestructura de producción (proxy inverso + contenedores)**: [docs/INFRA_PRODUCCION.md](docs/INFRA_PRODUCCION.md)
 
 ---
 
@@ -94,6 +96,7 @@ Artesa_Nica/
 │   │   ├── en/                # Rutas bilingües en inglés (/en/map, /en/products, etc.)
 │   │   └── api/               # Endpoints server-side (REST API)
 │   │       ├── auth/          # login, register, logout, me, forgot-password, reset-password
+│   │       │   └── 2fa/       # Enrolamiento TOTP: setup, enable, verify, disable, status
 │   │       ├── products/      # CRUD de productos y filtros por artesano
 │   │       ├── stores/        # Directorio, CRUD de tiendas, /mine y /geo
 │   │       ├── cart/          # Gestión del carrito de compras sincronizado
@@ -102,6 +105,8 @@ Artesa_Nica/
 │   │       ├── dashboard/     # Métricas y estadísticas de ventas para artesanos
 │   │       └── users/         # Gestión de perfil de usuario y avatar
 │   ├── lib/                   # Utilidades y configuración central
+│   │   ├── auth/              # Núcleo de seguridad: totp.ts (RFC 6238), twofactor.ts,
+│   │   │                      #   cookie.ts, csrf.ts, guards.ts, refresh.ts, logger.ts
 │   │   ├── pb-url.ts          # Resolución de URL y conmutación de PocketBase (Local ↔ Cloud)
 │   │   ├── pocketbase.ts      # Cliente SDK de PocketBase (per-request & admin)
 │   │   ├── geo.ts             # Coordenadas y metadatos departamentales de Nicaragua
@@ -116,6 +121,15 @@ Artesa_Nica/
 │       ├── ui.ts              # Diccionario bilingüe de strings de interfaz (ES / EN)
 │       └── utils.ts           # Helpers de traducción y extracción de idioma
 ├── docs/                      # Documentación técnica, ER 3FN y presupuesto
+├── infra/                     # Despliegue autoalojado (nginx + Docker)
+│   ├── nginx/                 # nginx.conf, vhost :80, plantilla TLS, snippets
+│   ├── docker/                # Dockerfile de PocketBase y entrypoint
+│   ├── install-host.sh        # nginx + Docker + configuración (requiere sudo)
+│   ├── up.sh                  # levanta el stack de contenedores
+│   └── verify.sh              # verificación del despliegue (6 bloques)
+├── docker-compose.yml         # web (Astro SSR) + PocketBase en red interna
+├── Dockerfile                 # Imagen del frontend (adaptador @astrojs/node)
+├── astro.config.docker.mjs    # Config del build autoalojado (Vercel intacto)
 ├── public/                    # Activos estáticos, logos e iconografía
 ├── astro.config.mjs           # Configuración de Astro, Tailwind v4, i18n y CSP
 ├── components.json            # Configuración de componentes de UI
@@ -132,8 +146,33 @@ Crea un archivo `.env` en la raíz del proyecto tomando como referencia `.env.ex
 | :--- | :---: | :---: | :--- |
 | `POCKETBASE_URL` | Sí | No | URL interna del servidor PocketBase (ej. `http://127.0.0.1:8090`). Si falla, conmuta a PocketHost. |
 | `PUBLIC_POCKETBASE_URL` | Sí | Sí | URL pública de PocketBase accesible desde el navegador. |
-| `POCKETBASE_ADMIN_EMAIL` | Sí | No | Email de superusuario para operaciones administrativas server-side (seed, scripts). |
-| `POCKETBASE_ADMIN_PASSWORD` | Sí | No | Contraseña del superusuario (nunca expuesta al cliente). |
+| `POCKETBASE_ADMIN_EMAIL` | Sí | No | Email de superusuario para operaciones administrativas server-side (seed, scripts). Requerido también para el 2FA. |
+| `POCKETBASE_ADMIN_PASSWORD` | Sí | No | Contraseña del superusuario (nunca expuesta al cliente). Requerido también para el 2FA. |
+
+> **Nota 2FA:** el estado de la verificación en dos pasos vive en campos `hidden` de la colección `users`, por lo que solo el cliente de superusuario puede leerlo. Si `POCKETBASE_ADMIN_EMAIL`/`POCKETBASE_ADMIN_PASSWORD` no están configurados, `/api/auth/login` responde `503 auth_backend_unavailable` (fallo cerrado) en lugar de emitir una sesión sin poder comprobar el segundo factor.
+
+---
+
+## 🔐 Seguridad y Buenas Prácticas
+
+| Control | Implementación |
+| :--- | :--- |
+| **Autenticación en dos pasos (2FA)** | TOTP RFC 6238 (HMAC-SHA1, 30 s, 6 dígitos, ventana ±1) implementado sobre Web Crypto en `src/lib/auth/totp.ts`, sin dependencias externas. Enrolamiento con clave Base32 y URI `otpauth://`, 10 códigos de recuperación de un solo uso (solo hashes SHA-256 en BD) y bloqueo anti-replay por contador temporal. |
+| **Roles y permisos** | Campo `role` (`user` / `seller` / `admin`) + guards SSR (`requireUser`, `requireRole`) y reglas de colección de PocketBase. |
+| **Validación de datos** | Esquemas Zod en los 13 endpoints mutantes (body/campos) antes de tocar PocketBase. |
+| **Control de sesión** | Cookie `pb_auth` HttpOnly + Secure(prod) + SameSite=Lax; rotación de JWT en middleware cuando al token le quedan <5 min; verificación de que el record en memoria corresponda al JWT. |
+| **CSRF** | Doble envío (`csrf-token` cookie + `x-csrf-token`) + allowlist de `Origin`/`Referer` con comparación en tiempo constante. |
+| **Cabeceras HTTP** | CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` y HSTS en producción (ver `astro.config.mjs`). |
+| **Manejo de errores** | Respuestas JSON `{ error }` con códigos estables, sin filtrar si un email existe; logs estructurados (`logAuthEvent`) con allowlist de campos y cero PII. |
+| **Rate limiting** | Reglas de PocketBase para `authWithPassword` / reset de contraseña + limitador de intentos por usuario en el paso 2 del 2FA (5 intentos / 5 min). |
+| **Verificación de correo** | Flujo `verify-email` + banners localizados en el login. |
+
+### Activar la verificación en dos pasos
+
+1. Inicia sesión y entra a **Perfil → Seguridad**.
+2. Pulsa **Activar verificación en dos pasos**: se muestra la clave Base32 y el enlace `otpauth://` para agregarla a Google Authenticator, Authy, 1Password o Microsoft Authenticator.
+3. Confirma el código de 6 dígitos y guarda los **10 códigos de recuperación** (se muestran una sola vez).
+4. A partir de ese momento el login pide el código en un segundo paso. Para desactivarla se exige la contraseña actual más un código vigente.
 
 ---
 
@@ -168,10 +207,15 @@ Todos los endpoints API están protegidos contra ataques CSRF y validan sus entr
 | `POST` | `/api/reviews` | Publica una reseña con valoración (1 a 5 estrellas). |
 | `GET` | `/api/dashboard/stats` | Estadísticas del taller del artesano (ventas, pedidos, inventario). |
 | `GET/PUT`| `/api/users/me` | Consulta o actualiza datos personales y avatar del usuario. |
+| `POST` | `/api/auth/2fa/setup` | Inicia el enrolamiento TOTP: genera el secreto y el URI `otpauth://`. |
+| `POST` | `/api/auth/2fa/enable` | Confirma un código de 6 dígitos y activa el 2FA (devuelve 10 códigos de recuperación, una sola vez). |
+| `POST` | `/api/auth/2fa/verify` | Paso 2 del login: canjea la cookie de desafío `pb_2fa` por la sesión validando un código TOTP o de recuperación. |
+| `POST` | `/api/auth/2fa/disable` | Desactiva el 2FA exigiendo contraseña actual + código vigente. |
+| `GET` | `/api/auth/2fa/status` | Estado del 2FA del usuario (`enabled`, `pendingSetup`, códigos de recuperación restantes). |
 
 ---
 
-## 🚢 Despliegue en Vercel
+## 🚢 Despliegue en Vercel (escenario A — gestionado)
 
 1. Conecta el repositorio directamente en el dashboard de **Vercel**.
 2. **Root Directory**: Deja la raíz del repositorio (`./`).
@@ -181,6 +225,39 @@ Todos los endpoints API están protegidos contra ataques CSRF y validan sus entr
    - **Build Command**: `npm run build`
    - **Output Directory**: `.vercel/output`
    - **Node Version**: `22.x`
+
+---
+
+## 🐳 Despliegue autoalojado (escenario B — proxy inverso + contenedores)
+
+Alternativa completa para ejecutar ArtesaNica en un servidor propio (Arch/CachyOS)
+con **nginx** como proxy inverso y **Docker** para el aislamiento. No afecta al
+despliegue en Vercel: usa `astro.config.docker.mjs` (adaptador `@astrojs/node`)
+en lugar de `astro.config.mjs`.
+
+```bash
+sudo bash infra/install-host.sh     # nginx + Docker + configuración + firewall
+cp .env.docker.example .env.docker  # credenciales del superusuario
+bash infra/up.sh                    # construye y levanta los contenedores
+bash infra/verify.sh                # 6 bloques de comprobación
+```
+
+| Puerto | Servicio | Expuesto a | Función |
+| :--- | :--- | :--- | :--- |
+| **80 / 443** | nginx (borde) | Internet/LAN | Única entrada pública (CSP, rate limit, gzip, caché de estáticos). |
+| 4322 | contenedor `web` (Astro SSR) | sólo `127.0.0.1` | Renderizado SSR y `/api/*` (4321 dentro del contenedor). |
+| 8091 | contenedor `pocketbase` | sólo `127.0.0.1` | Datos, auth y archivos (8090 dentro del contenedor; el navegador los consume vía `/pb/api/files/`). |
+
+Los puertos del host son **4322** y **8091** (no 4321/8090) para poder convivir
+con el entorno de desarrollo, que ya usa esos números.
+
+Reglas clave: ningún contenedor publica puertos a la red (sólo loopback), el
+navegador nunca habla directo con PocketBase (imágenes por `/pb/`, mismo origen)
+y los secretos se leen en tiempo de ejecución, así que no quedan dentro de la
+imagen.
+
+📖 **Detalle completo** (mapa de puertos, variables, operación, TLS con certbot,
+solución de problemas y checklist): [docs/INFRA_PRODUCCION.md](docs/INFRA_PRODUCCION.md).
 
 ---
 
@@ -200,6 +277,7 @@ El progreso y ciclo de vida de las tareas se gestiona activamente mediante el ta
 - [x] Sincronización asíncrona de carrito con mitigación de race conditions y debouncing.
 - [x] Sistema de notificaciones flotantes (Toasts) y estados de carga con esqueletos animados (Skeletons).
 - [x] Resiliencia de base de datos con conmutación automática local ↔ PocketHost cloud.
+- [x] Autenticación en dos pasos (TOTP RFC 6238) con códigos de recuperación, validación anti-replay y UI en el perfil.
 
 ### 📋 En Desarrollo / Backlog Próximo
 - [ ] **Filtros Avanzados en Catálogo**: Filtro por departamento de origen (Masaya, León, Granada, etc.) y rangos de precio.

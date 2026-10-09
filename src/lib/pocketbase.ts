@@ -11,13 +11,15 @@
 
 import PocketBase from 'pocketbase';
 import { getPocketBaseUrl, getPocketBaseUrlSync } from './pb-url';
+import { runtimeEnv } from './env';
 
 export { getPocketBaseUrl, getPocketBaseUrlSync, pbFileUrl, FALLBACK_POCKETBASE_URL } from './pb-url';
 
 const INITIAL_CONFIG_URL =
-	(typeof import.meta !== 'undefined' &&
-		import.meta.env &&
-		(import.meta.env.POCKETBASE_URL || import.meta.env.PUBLIC_POCKETBASE_URL)) ||
+	cleanUrl(runtimeEnv('POCKETBASE_URL', import.meta.env.POCKETBASE_URL)) ||
+	cleanUrl(
+		runtimeEnv('PUBLIC_POCKETBASE_URL', import.meta.env.PUBLIC_POCKETBASE_URL),
+	) ||
 	'http://127.0.0.1:8090';
 
 function cleanUrl(url: string): string {
@@ -95,8 +97,14 @@ export async function ensureAdminAuth(): Promise<PocketBase> {
 	if (!adminAuthPromise) {
 		adminAuthPromise = (async () => {
 			try {
-				const email = import.meta.env.POCKETBASE_ADMIN_EMAIL;
-				const password = import.meta.env.POCKETBASE_ADMIN_PASSWORD;
+				const email = runtimeEnv(
+					'POCKETBASE_ADMIN_EMAIL',
+					import.meta.env.POCKETBASE_ADMIN_EMAIL,
+				);
+				const password = runtimeEnv(
+					'POCKETBASE_ADMIN_PASSWORD',
+					import.meta.env.POCKETBASE_ADMIN_PASSWORD,
+				);
 				if (!email || !password) {
 					throw new Error('POCKETBASE_ADMIN_EMAIL y POCKETBASE_ADMIN_PASSWORD requeridos para admin auth.');
 				}

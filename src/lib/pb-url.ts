@@ -6,12 +6,20 @@
 // =============================================================================
 
 import { useEffect, useState } from 'react';
+import { runtimeEnv } from './env';
 
 export const FALLBACK_POCKETBASE_URL = 'https://vapor-invented.pockethost.io';
+
+/** URL de PocketBase visible desde el NAVEGADOR (detrás del proxy inverso). */
+function publicBaseUrl(): string {
+	return cleanUrl(
+		runtimeEnv('PUBLIC_POCKETBASE_URL', import.meta.env.PUBLIC_POCKETBASE_URL),
+	);
+}
+
 const INITIAL_CONFIG_URL =
-	(typeof import.meta !== 'undefined' &&
-		import.meta.env &&
-		(import.meta.env.POCKETBASE_URL || import.meta.env.PUBLIC_POCKETBASE_URL)) ||
+	cleanUrl(runtimeEnv('POCKETBASE_URL', import.meta.env.POCKETBASE_URL)) ||
+	publicBaseUrl() ||
 	'http://127.0.0.1:8090';
 
 const SESSION_CACHE_KEY = 'pb_active_url';
@@ -118,7 +126,17 @@ export function getPocketBaseUrlSync(): string {
  * Helper para construir la URL publica de un archivo de PocketBase.
  */
 export function pbFileUrl(collectionId: string, recordId: string, filename: string): string {
-	const baseUrl = getPocketBaseUrlSync();
+	// Estas URLs acaban en el HTML (`<img src>`), así que deben usar la base
+	// visible desde el NAVEGADOR, no la interna del servidor. En Docker la
+	// interna es `http://pocketbase:8090` (solo resoluble en la red del
+	// compose) y la pública es `/pb` (servida por nginx en el mismo origen).
+	//
+	// Excepción: si el resolutor ya conmutó a la instancia de respaldo en la
+	// nube (el PocketBase configurado no responde), se respeta esa URL para
+	// que las imágenes carguen desde el mismo host que sirvió los datos.
+	const resolved = cleanUrl(getPocketBaseUrlSync());
+	const usingFallback = resolved === cleanUrl(FALLBACK_POCKETBASE_URL);
+	const baseUrl = usingFallback ? resolved : publicBaseUrl() || resolved;
 	const col = collectionId || 'products';
 	return `${baseUrl}/api/files/${col}/${recordId}/${filename}`;
 }

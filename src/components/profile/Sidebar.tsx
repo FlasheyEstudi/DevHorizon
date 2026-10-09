@@ -15,6 +15,7 @@ import {
   Home,
   LayoutGrid,
   Package,
+  ShieldCheck,
   ShoppingBag,
   UserCircle,
 } from 'lucide-react';
@@ -22,7 +23,14 @@ import type { LucideIcon } from 'lucide-react';
 import type { Lang } from '../../i18n/ui';
 import { useTranslations } from '../../i18n/utils';
 
-export type ProfileTab = 'overview' | 'store' | 'products' | 'dashboard' | 'orders' | 'account';
+export type ProfileTab =
+  | 'overview'
+  | 'store'
+  | 'products'
+  | 'dashboard'
+  | 'orders'
+  | 'account'
+  | 'security';
 
 interface SidebarItem {
   key: ProfileTab;
@@ -34,6 +42,7 @@ const COMMON_ITEMS: SidebarItem[] = [
   { key: 'overview', labelKey: 'profile.sidebar.overview', icon: Home },
   { key: 'orders', labelKey: 'profile.sidebar.orders', icon: ShoppingBag },
   { key: 'account', labelKey: 'profile.sidebar.account', icon: UserCircle },
+  { key: 'security', labelKey: 'profile.sidebar.security', icon: ShieldCheck },
 ];
 
 const SELLER_ITEMS: SidebarItem[] = [

@@ -60,4 +60,49 @@ export function setAuthCookie(
 export function clearAuthCookie(cookies: AstroCookies): void {
   cookies.delete(AUTH_COOKIE_NAME, { path: '/' });
   cookies.delete('pb_has_session', { path: '/' });
+  clearPendingTwoFactorCookie(cookies);
+}
+
+// =============================================================================
+// Cookie de desafío 2FA (login en dos pasos)
+// =============================================================================
+// Cuando la cuenta tiene TOTP activo, /api/auth/login NO emite `pb_auth`.
+// Guarda temporalmente el token de PocketBase en `pb_2fa` (HttpOnly, 5 min) y
+// solo /api/auth/2fa/verify lo canjea por la sesión real una vez validado el
+// código. El middleware ignora `pb_2fa`, así que esta cookie por sí sola no
+// autentica ninguna ruta.
+// =============================================================================
+
+export const PENDING_2FA_COOKIE_NAME = 'pb_2fa';
+const PENDING_2FA_MAX_AGE_SECONDS = 5 * 60; // 5 minutos
+
+export function setPendingTwoFactorCookie(
+  cookies: AstroCookies,
+  token: string
+): void {
+  cookies.set(PENDING_2FA_COOKIE_NAME, JSON.stringify({ token }), {
+    httpOnly: true,
+    secure: import.meta.env.PROD,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: PENDING_2FA_MAX_AGE_SECONDS,
+  });
+}
+
+export function clearPendingTwoFactorCookie(cookies: AstroCookies): void {
+  cookies.delete(PENDING_2FA_COOKIE_NAME, { path: '/' });
+}
+
+/** Token crudo del desafío 2FA, o null si no hay cookie válida. */
+export function readPendingTwoFactorToken(
+  cookies: AstroCookies
+): string | null {
+  const raw = cookies.get(PENDING_2FA_COOKIE_NAME)?.value;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { token?: unknown };
+    return typeof parsed?.token === 'string' && parsed.token ? parsed.token : null;
+  } catch {
+    return null;
+  }
 }

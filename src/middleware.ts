@@ -24,6 +24,7 @@ import { maybeRefresh, decodeJwtPayload } from './lib/auth/refresh';
 import { issueCsrfCookie, CSRF_COOKIE_NAME } from './lib/auth/csrf';
 import { setAuthCookie, AUTH_COOKIE_NAME } from './lib/auth/cookie';
 import { getLangFromUrl, getPathWithoutLocale } from './i18n/utils';
+import { withSecurityHeaders } from './lib/security-headers';
 
 const PROTECTED_PATHS = ['/perfil', '/carrito', '/orden'];
 const AUTH_PAGES = ['/login', '/registro'];
@@ -96,12 +97,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (isProtectedPath(normalizedPath) && !context.locals.user) {
     const nextParam = encodeURIComponent(context.url.pathname + context.url.search);
-    return context.redirect(`${redirectPrefix}/login?next=${nextParam}`);
+    return withSecurityHeaders(context.redirect(`${redirectPrefix}/login?next=${nextParam}`));
   }
 
   if (AUTH_PAGES.includes(normalizedPath) && context.locals.user) {
-    return context.redirect(`${redirectPrefix}/`);
+    return withSecurityHeaders(context.redirect(`${redirectPrefix}/`));
   }
 
-  return next();
+  // Cabeceras de seguridad cuando la app es el borde (SECURITY_HEADERS=app);
+  // sin esa variable es un no-op y las pone nginx o Vercel.
+  return withSecurityHeaders(await next());
 });

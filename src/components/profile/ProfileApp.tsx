@@ -1,7 +1,7 @@
 // =============================================================================
 // ProfileApp.tsx — Isla React principal del perfil
 // =============================================================================
-// Orquesta las 6 secciones del perfil con navegacion por tabs interna.
+// Orquesta las secciones del perfil con navegacion por tabs interna.
 //
 // - Lee el user via refreshAuth() (al boot) y se suscribe al nanostore
 //   `authUser` para reaccionar a cambios (ej: despues de crear tienda,
@@ -20,6 +20,7 @@ import StoreSection from './sections/StoreSection';
 import ProductsSection from './sections/ProductsSection';
 import DashboardSection from './sections/DashboardSection';
 import SecuritySection from './sections/SecuritySection';
+import SuggestionsSection from './sections/SuggestionsSection';
 import OrdersSection from './sections/OrdersSection';
 import AccountSection from './sections/AccountSection';
 import { Skeleton } from '../ui/skeleton';
@@ -93,6 +94,7 @@ export default function ProfileApp({ lang, labels }: Props) {
 
   const role = user.role ?? 'user';
   const isSeller = role === 'seller' || role === 'admin';
+  const isAdmin = role === 'admin';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6 lg:gap-8">
@@ -104,6 +106,14 @@ export default function ProfileApp({ lang, labels }: Props) {
       />
 
       <main className="min-w-0">
+        {isAdmin && (
+          <a
+            href="/admin"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:text-secondary-dark mb-4"
+          >
+            Ir al Panel de Administración →
+          </a>
+        )}
         {activeTab === 'overview' && (
           <Overview
             lang={lang}
@@ -125,6 +135,9 @@ export default function ProfileApp({ lang, labels }: Props) {
         )}
         {activeTab === 'dashboard' && isSeller && (
           <DashboardSection lang={lang} />
+        )}
+        {activeTab === 'suggestions' && isSeller && (
+          <SuggestionsSection lang={lang} />
         )}
         {activeTab === 'orders' && (
           <OrdersSection lang={lang} />

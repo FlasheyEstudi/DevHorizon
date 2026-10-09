@@ -1,0 +1,111 @@
+---
+// =============================================================================
+// news/ShareButtons.astro — Botones de compartir para las noticias.
+// =============================================================================
+// Comparte el enlace canonico del articulo via WhatsApp / Facebook / X y un
+// boton "Copiar enlace" (Clipboard API). Pensado para la pagina de detalle de
+// noticia; el usuario que lee puede difundirla.
+//
+// Recibe `url` absoluta y `title`; el texto de la UI se localiza con `lang`.
+// =============================================================================
+
+interface Props {
+  url: string;
+  title: string;
+  lang: string;
+}
+
+const { url, title, lang } = Astro.props;
+
+const enc = encodeURIComponent;
+const links = {
+  whatsapp: `https://wa.me/?text=${enc(`${title} ${url}`)}`,
+  facebook: `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`,
+  x: `https://twitter.com/intent/tweet?url=${enc(url)}&text=${enc(title)}`,
+};
+
+const LABELS: Record<string, Record<string, string>> = {
+  es: { label: 'Compartir:', copy: 'Copiar enlace', copied: '¡Enlace copiado!', native: 'Compartir' },
+  en: { label: 'Share:', copy: 'Copy link', copied: 'Link copied!', native: 'Share' },
+  miq: { label: 'San pura:', copy: 'Link kupia', copied: 'Link kupi sa!', native: 'San pura' },
+};
+const L = LABELS[lang] ?? LABELS.es;
+
+const btnBase =
+  'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border transition-colors';
+---
+
+<div
+  class="flex items-center gap-2 flex-wrap mt-10 pt-6 border-t border-borde"
+  data-share-url={url}
+  data-share-title={title}
+>
+  <span class="text-sm font-semibold text-texto-secundario mr-1">{L.label}</span>
+
+  <a
+    href={links.whatsapp}
+    target="_blank"
+    rel="noopener noreferrer"
+    class={`${btnBase} border-exito/40 text-exito hover:bg-exito/10`}
+  >
+    WhatsApp
+  </a>
+
+  <a
+    href={links.facebook}
+    target="_blank"
+    rel="noopener noreferrer"
+    class={`${btnBase} border-secondary/40 text-secondary hover:bg-secondary/10`}
+  >
+    Facebook
+  </a>
+
+  <a
+    href={links.x}
+    target="_blank"
+    rel="noopener noreferrer"
+    class={`${btnBase} border-borde text-texto hover:bg-fondo dark:hover:bg-zinc-800`}
+  >
+    X
+  </a>
+
+  <button
+    type="button"
+    data-share-copy
+    data-copy-label={L.copy}
+    data-copied-label={L.copied}
+    class={`${btnBase} border-primary/40 text-primary hover:bg-primary/10`}
+  >
+    {L.copy}
+  </button>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-share-copy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const wrap = btn.closest('[data-share-url]');
+      const url = wrap?.getAttribute('data-share-url') || window.location.href;
+      const copyLabel = btn.getAttribute('data-copy-label') || 'OK';
+      const copiedLabel = btn.getAttribute('data-copied-label') || 'OK';
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          // Fallback para contextos no seguros (http).
+          const input = document.createElement('input');
+          input.value = url;
+          document.body.appendChild(input);
+          input.select();
+          document.execCommand('copy');
+          document.body.removeChild(input);
+        }
+        btn.textContent = copiedLabel;
+        setTimeout(() => {
+          btn.textContent = copyLabel;
+        }, 2000);
+      } catch {
+        /* clipboard bloqueado: no rompemos la lectura */
+      }
+    });
+  });
+</script>

@@ -9,9 +9,11 @@
 //      without paying a refresh round-trip on every request.
 //   3. Issue the `csrf-token` cookie on safe GETs that don't have one, so
 //      forms rendered on those pages get a fresh double-submit token.
-//   4. Guard /perfil and /carrito — redirect anonymous users to
+//   4. Guard /perfil, /carrito and /orden — redirect anonymous users to
 //      /login?next=<encoded path+search>.
 //   5. Inverse-guard /login and /registro — redirect authed users to /.
+//   6. Guard /admin — require an authenticated user with role 'admin';
+//      anonymous users go to /login?next=..., non-admins to /.
 //
 // Static/prerendered pages still get middleware applied at build time, but
 // `locals` is irrelevant there since no auth-dependent code runs. The Vercel
@@ -28,9 +30,14 @@ import { withSecurityHeaders } from './lib/security-headers';
 
 const PROTECTED_PATHS = ['/perfil', '/carrito', '/orden'];
 const AUTH_PAGES = ['/login', '/registro'];
+const ADMIN_PATHS = ['/admin'];
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
+
+function isAdminPath(pathname: string): boolean {
+  return ADMIN_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -102,6 +109,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (AUTH_PAGES.includes(normalizedPath) && context.locals.user) {
     return withSecurityHeaders(context.redirect(`${redirectPrefix}/`));
+  }
+
+  // 4. /admin: sesion + rol admin. El non-admin se manda al home, no a login.
+  if (isAdminPath(normalizedPath)) {
+    if (!context.locals.user) {
+      const nextParam = encodeURIComponent(context.url.pathname + context.url.search);
+      return withSecurityHeaders(context.redirect(`${redirectPrefix}/login?next=${nextParam}`));
+    }
+    if ((context.locals.user as { role?: string }).role !== 'admin') {
+      return withSecurityHeaders(context.redirect(`${redirectPrefix}/`));
+    }
   }
 
   // Cabeceras de seguridad cuando la app es el borde (SECURITY_HEADERS=app);

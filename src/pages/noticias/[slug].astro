@@ -1,6 +1,7 @@
 ---
 export const prerender = false;
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ShareButtons from '../../components/news/ShareButtons.astro';
 import { pb, pbFileUrl } from '../../lib/pocketbase';
 import { getLangFromUrl, useTranslations } from '../../i18n/utils';
 
@@ -44,6 +45,7 @@ function formatNewsDate(dateStr?: string): string {
 }
 
 const imgUrl = news.image ? pbFileUrl(news.collectionId, news.id, news.image) : null;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://artesanica.ni').href;
 ---
 
 <BaseLayout
@@ -67,5 +69,7 @@ const imgUrl = news.image ? pbFileUrl(news.collectionId, news.id, news.image) : 
     )}
 
     <div class="prose max-w-none text-texto text-lg leading-relaxed space-y-4" set:html={news.content} />
+
+    <ShareButtons url={canonicalUrl} title={news.title} lang={lang} />
   </article>
 </BaseLayout>

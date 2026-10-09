@@ -1,0 +1,28 @@
+---
+// =============================================================================
+// pages/admin/index.astro — Entrada del Panel de Super Admin.
+// =============================================================================
+// export const prerender = false -> la ruta es SSR (necesita la cookie de
+// sesion para el guard). El middleware ya bloquea /admin para no-admins; aca
+// se repite el guard como belt-and-braces (fail closed si no corriera).
+//
+// Todo el panel es una isla React (AdminApp) con tabs internos:
+// Categorias, Noticias y Sugerencias.
+// =============================================================================
+
+export const prerender = false;
+
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AdminApp from '../../components/admin/AdminApp.tsx';
+import { getLangFromUrl } from '../../i18n/utils';
+import { requireRole } from '../../lib/auth/guards';
+
+const guard = requireRole(Astro, ['admin']);
+if (guard instanceof Response) return guard;
+
+const lang = getLangFromUrl(Astro.url);
+---
+
+<AdminLayout>
+  <AdminApp client:load lang={lang} />
+</AdminLayout>

@@ -3,8 +3,9 @@
 // =============================================================================
 // Muestra los items segun role del user:
 //   - 'user'  : Inicio · Mis pedidos · Mi cuenta
-//   - 'seller': + Mi tienda · Mis productos · Dashboard
-//   - 'admin' : igual que seller (no se construye vista admin-specific aca)
+//   - 'seller': + Mi tienda · Mis productos · Dashboard · Sugerir categoría
+//   - 'admin' : igual que seller (el panel de administración vive aparte,
+//               en la ruta dedicada /admin — ver middleware.ts).
 //
 // El item activo se resalta con bg-primary/10 + text-primary + border-left.
 // =============================================================================
@@ -18,6 +19,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   UserCircle,
+  Lightbulb,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Lang } from '../../i18n/ui';
@@ -28,6 +30,7 @@ export type ProfileTab =
   | 'store'
   | 'products'
   | 'dashboard'
+  | 'suggestions'
   | 'orders'
   | 'account'
   | 'security';
@@ -49,6 +52,7 @@ const SELLER_ITEMS: SidebarItem[] = [
   { key: 'store', labelKey: 'profile.sidebar.store', icon: LayoutGrid },
   { key: 'products', labelKey: 'profile.sidebar.products', icon: Package },
   { key: 'dashboard', labelKey: 'profile.sidebar.dashboard', icon: LayoutDashboard },
+  { key: 'suggestions', labelKey: 'profile.sidebar.suggestions', icon: Lightbulb },
 ];
 
 interface SidebarProps {

@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sistema de Componentes de UI — ArtesaNica</title>
+<meta name="description" content="Biblioteca de componentes de interfaz reutilizables de ArtesaNica: botones, encabezados, tarjetas y formularios, coherente con los tokens de DESIGN.md." />
+<link rel="stylesheet" href="estilos.css" />
+</head>
+<body>
+<div class="doc">
+
+  <!-- ================================================================
+       PORTADA
+       ================================================================ -->
+  <header class="doc-head">
+    <span class="doc-head__eyebrow">ArtesaNica · Sistema de diseño</span>
+    <h1 class="doc-title">Sistema de <span>Componentes de UI</span></h1>
+    <p class="doc-sub">
+      Biblioteca de elementos reutilizables para el desarrollo de la plataforma: encabezados y
+      navegación, botones, tarjetas, formularios y estados de feedback. Cada componente usa
+      exclusivamente los tokens de color, tipografía, radios y sombras definidos en
+      <code class="inline">DESIGN.md</code> y declarados en <code class="inline">src/styles/global.css</code>
+      (Tailwind CSS v4), por lo que se comporta igual en modo claro y oscuro.
+    </p>
+    <ul class="doc-meta">
+      <li>Tokens: Terracota #B85536 · Azul Añil #285375 · Ocre #E2A349</li>
+      <li>Tipografía: Poppins</li>
+      <li>Contraste: WCAG 2.1 AA/AAA</li>
+      <li>Sin dependencias externas: HTML + CSS</li>
+    </ul>
+  </header>
+
+  <!-- ================================================================
+       ÍNDICE
+       ================================================================ -->
+  <nav class="toc" aria-label="Índice del documento">
+    <h2>Contenido</h2>
+    <ol>
+      <li><a href="#reglas">Cómo usar esta guía</a></li>
+      <li><a href="#fundamentos">Fundamentos: color, tipografía, formas</a></li>
+      <li><a href="#encabezados">Encabezados y navegación</a></li>
+      <li><a href="#botones">Botones</a></li>
+      <li><a href="#tarjetas">Tarjetas (cards)</a></li>
+      <li><a href="#formularios">Formularios</a></li>
+      <li><a href="#feedback">Feedback y estados</a></li>
+      <li><a href="#oscuro">Modo oscuro</a></li>
+      <li><a href="#implementacion">Guía de implementación</a></li>
+    </ol>
+  </nav>
+
+  <!-- ================================================================
+       1. CÓMO USAR ESTA GUÍA
+       ================================================================ -->
+  <section class="section" id="reglas">
+    <h2><span class="num">01</span> Cómo usar esta guía</h2>
+    <p class="section__lead">
+      Cada bloque muestra el componente <strong>renderizado</strong> y, debajo, el marcado
+      recomendado. Los ejemplos de código reproducen las clases reales que ya se usan en el
+      proyecto, de modo que se puedan copiar directamente en un componente Astro/React.
+    </p>
+
+    <div class="panel">
+      <h3 style="margin-top:0">Cinco reglas obligatorias</h3>
+      <ol class="rule-list">
+        <li>
+          <strong>Solo tokens semánticos.</strong> <code class="inline">bg-primary</code>,
+          <code class="inline">text-texto</code>, <code class="inline">border-borde</code>,
+          <code class="inline">bg-blanco</code>… Nunca colores sueltos
+          (<code class="inline">bg-[#B85536]</code>, <code class="inline">text-gray-900</code>,
+          <code class="inline">bg-white</code>).
+        </li>
+        <li>
+          <strong>Un color por intención.</strong> Terracota = acción principal; Azul Añil =
+          contexto institucional/navegación; Ocre = acento y calificación; verde/rojo = solo
+          estados de éxito y error.
+        </li>
+        <li>
+          <strong>Todo componente debe verse bien en claro y oscuro.</strong> Si el bloque no
+          aparece también en la <a href="#oscuro">sección 08</a>, está incompleto.
+        </li>
+        <li>
+          <strong>Estados obligatorios.</strong> Todo elemento interactivo define
+          <em>hover</em>, <em>focus-visible</em>, <em>disabled</em> y —si aplica—
+          <em>loading</em> y <em>error</em>.
+        </li>
+        <li>
+          <strong>Accesibilidad mínima.</strong> Foco visible con anillo de 2&nbsp;px
+          <code class="inline">ring-primary</code>, texto de 4.5:1, áreas táctiles ≥ 40&nbsp;px y
+          <code class="inline">aria-*</code> cuando el estado no es visualmente evidente.
+        </li>
+      </ol>
+    </div>
+
+    <div class="note">
+      <strong>Nota sobre Tailwind.</strong> El proyecto usa Tailwind CSS v4: en
+      <code class="inline">src/styles/global.css</code> el bloque <code class="inline">@theme</code>
+      declara variables <code class="inline">--color-*</code>, <code class="inline">--shadow-*</code>
+      y <code class="inline">--font-*</code>, y Tailwind genera automáticamente las utilidades
+      (<code class="inline">bg-primary</code>, <code class="inline">shadow-card</code>, …). El modo
+      oscuro se activa con la clase <code class="inline">.dark</code> en <code class="inline">&lt;html&gt;</code>
+      (<code class="inline">@custom-variant dark</code>), y cada token cambia de valor sin tocar el marcado.
+    </div>
+  </section>
+
+  <!-- ================================================================
+       2. FUNDAMENTOS
+       ================================================================ -->
+  <section class="section" id="fundamentos">
+    <h2><span class="num">02</span> Fundamentos: color, tipografía, formas</h2>
+    <p class="section__lead">
+      Los componentes no inventan valores: heredan estos fundamentos. Si necesitas un color que no
+      está aquí, primero se añade el token al sistema de diseño y después se usa.
+    </p>
+
+    <h3>2.1 Color</h3>
+    <h4>Paleta de marca</h4>
+    <div class="swatches">
+      <div class="swatch">
+        <div class="swatch__chip" style="background:#B85536;color:#fff">PRIMARIO</div>
+        <div class="swatch__body">
+          <span class="swatch__name">Terracota / Barro</span>
+          <span class="swatch__hex">--color-primary · #B85536</span>
+          <p class="swatch__use">CTAs, botones primarios, precio, enlaces activos, badges destacados.</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__chip" style="background:#285375;color:#fff">SECUNDARIO</div>
+        <div class="swatch__body">
+          <span class="swatch__name">Azul Colonial / Añil</span>
+          <span class="swatch__hex">--color-secondary · #285375</span>
+          <p class="swatch__use">Encabezados de sección, navegación, acciones de exploración, banners institucionales.</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__chip" style="background:#E2A349;color:#1e293b">ACENTO</div>
+        <div class="swatch__body">
+          <span class="swatch__name">Ocre Dorado / Ámbar</span>
+          <span class="swatch__hex">--color-tertiary · #E2A349</span>
+          <p class="swatch__use">Calificación (estrellas), etiquetas de descubrimiento, micro-acentos cálidos.</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__chip" style="background:#1e293b;color:#fff">TEXTO</div>
+        <div class="swatch__body">
+          <span class="swatch__name">Texto base</span>
+          <span class="swatch__hex">--color-texto · #1e293b</span>
+          <p class="swatch__use">Contraste 14.8:1 (AAA). Titulares y cuerpo de texto.</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__chip" style="background:#64748b;color:#fff">SECUNDARIO</div>
+        <div class="swatch__body">
+          <span class="swatch__name">Texto secundario</span>
+          <span class="swatch__hex">--color-texto-secundario · #64748b</span>
+          <p class="swatch__use">Contraste 5.4:1 (AA). Descripciones, metadatos, ayudas de campo.</p>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__chip" style="background:#ef4444;color:#fff">ERROR</div>
+        <div class="swatch__body">
+          <span class="swatch__name">Error / Éxito</span>
+          <span class="swatch__hex">--color-error · #ef4444 · --color-exito · #16a34a</span>
+          <p class="swatch__use">Solo estados funcionales: mensajes de error y confirmaciones.</p>
+        </div>
+      </div>
+    </div>
+
+    <h4>Superficies y contenedores</h4>
+    <div class="swatches">
+      <div class="swatch">
+        <div class="swatch__chip" style="background:#f8fafc;color:#64748b">FONDO</div>
+        <div class="swatch__body">
+          <span class="swatch__name">Fondo de página</span>
+          <span class="swatch__hex">--color-fondo · #f8fafc → #0c131f</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__chip" style="background:#ffffff;color:#64748b;border-bottom:1px solid #e2e8f0">SUPERFICIE</div>
+        <div class="swatch__body">
+          <span class="swatch__name">Superficie / card</span>
+          <span class="swatch__hex">--color-blanco · #ffffff → #16202e</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__chip" style="background:#e2e8f0;color:#64748b">BORDE</div>
+        <div class="swatch__body">
+          <span class="swatch__name">Bordes y separadores</span>
+          <span class="swatch__hex">--color-borde · #e2e8f0 → #253346</span>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__chip" style="background:#FAF3F0;color:#B85536;border-bottom:1px solid #F0D7CF">BANNER</div>
+        <div class="swatch__body">
+          <span class="swatch__name">Banner temático</span>
+          <span class="swatch__hex">--color-banner-bg · #FAF3F0 → #1c1514</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap" style="margin-top:16px">
+      <table class="tokens">
+        <caption>Matriz resumida de tokens</caption>
+        <thead>
+          <tr>
+            <th>Token CSS</th>
+            <th>Utilidad Tailwind</th>
+            <th>Claro</th>
+            <th>Oscuro</th>
+            <th>Uso en componentes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>--color-primary</code></td><td><code>bg-primary</code></td><td>#B85536</td><td>#DE7D5F</td><td>Botón primario, precio, enlace activo</td></tr>
+          <tr><td><code>--color-primary-dark</code></td><td><code>hover:bg-primary-dark</code></td><td>#9A4227</td><td>#EAA088</td><td>Hover/active del botón primario</td></tr>
+          <tr><td><code>--color-primary-light</code></td><td><code>bg-primary-light</code></td><td>#F7ECE8</td><td>#331A13</td><td>Fondos suaves, tile de icono, código en línea</td></tr>
+          <tr><td><code>--color-primary-foreground</code></td><td><code>text-primary-foreground</code></td><td>#ffffff</td><td>#0c131f</td><td>Texto sobre superficie primaria</td></tr>
+          <tr><td><code>--color-secondary</code></td><td><code>bg-secondary</code></td><td>#285375</td><td>#5C93B8</td><td>Botón secundario, encabezado de sección, eyebrow</td></tr>
+          <tr><td><code>--color-secondary-light</code></td><td><code>bg-secondary-light</code></td><td>#EBF2F7</td><td>#132435</td><td>Alertas informativas, banners de ruta</td></tr>
+          <tr><td><code>--color-tertiary</code></td><td><code>bg-tertiary</code></td><td>#E2A349</td><td>#F0B865</td><td>Acento, etiqueta «DESCUBRE NICARAGUA»</td></tr>
+          <tr><td><code>--color-rating</code></td><td><code>text-rating</code></td><td>#E2A349</td><td>#F0B865</td><td>Estrellas y puntuación</td></tr>
+          <tr><td><code>--color-texto</code></td><td><code>text-texto</code></td><td>#1e293b</td><td>#f1f5f9</td><td>Titulares y cuerpo</td></tr>
+          <tr><td><code>--color-texto-secundario</code></td><td><code>text-texto-secundario</code></td><td>#64748b</td><td>#94a3b8</td><td>Metadatos, hints, textos de apoyo</td></tr>
+          <tr><td><code>--color-fondo</code></td><td><code>bg-fondo</code></td><td>#f8fafc</td><td>#0c131f</td><td>Fondo de página y de zonas hundidas</td></tr>
+          <tr><td><code>--color-blanco</code></td><td><code>bg-blanco</code></td><td>#ffffff</td><td>#16202e</td><td>Superficie de cards, inputs, modales</td></tr>
+          <tr><td><code>--color-borde</code></td><td><code>border-borde</code></td><td>#e2e8f0</td><td>#253346</td><td>Bordes de card, input y separadores</td></tr>
+          <tr><td><code>--color-exito</code> / <code>--color-error</code></td><td><code>text-exito</code>, <code>text-error</code></td><td>#16a34a / #ef4444</td><td>#4ade80 / #f87171</td><td>Estados de éxito y error en formularios</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2.2 Tipografía</h3>
+    <p>
+      Familia única <strong>Poppins</strong> (self-host con stack de respaldo
+      <code class="inline">Poppins-fallback, Poppins, sans-serif</code>). La jerarquía se construye con
+      tamaño + peso, nunca con otra familia.
+    </p>
+    <div class="panel">
+      <div class="type-row">
+        <span class="t-display">Artesanía que viaja</span>
+        <span class="type-row__spec">Display · 36/800 · Hero</span>
+      </div>
+      <div class="type-row">
+        <span class="t-h1">Título de página</span>
+        <span class="type-row__spec">H1 · 28–30/700 · Una por vista</span>
+      </div>
+      <div class="type-row">
+        <span class="t-h2">Título de sección</span>
+        <span class="type-row__spec">H2 · 22–24/700 · Secciones y banners</span>
+      </div>
+      <div class="type-row">
+        <span class="t-h3">Título de tarjeta</span>
+        <span class="type-row__spec">H3 · 16–18/700 · Cards y subsecciones</span>
+      </div>
+      <div class="type-row">
+        <span class="t-body">Texto de cuerpo, descripciones y párrafos de contenido.</span>
+        <span class="type-row__spec">Body · 15/400 · line-height 1.6</span>
+      </div>
+      <div class="type-row">
+        <span class="t-sm">Texto de interfaz: botones, labels, celdas de tabla.</span>
+        <span class="type-row__spec">UI · 13.5–14/500–600</span>
+      </div>
+      <div class="type-row">
+        <span class="t-meta">Metadatos: ubicación, fecha, valoraciones, ayudas de campo.</span>
+        <span class="type-row__spec">Meta · 12/400 · text-texto-secundario</span>
+      </div>
+      <div class="type-row">
+        <span class="t-eyebrow" style="color:var(--color-secondary)">Descubre Nicaragua</span>
+        <span class="type-row__spec">Eyebrow · 11/700 · tracking .18em + borde izquierdo</span>
+      </div>
+    </div>
+
+    <h3>2.3 Espaciado, radios y sombras</h3>
+    <div class="demo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">
+      <div style="background:var(--color-blanco);border:1px solid var(--color-borde);border-radius:6px;padding:14px;font-size:12px;font-weight:600">radius-sm · 6&nbsp;px<br /><span style="color:var(--color-texto-secundario)">badges, chips</span></div>
+      <div style="background:var(--color-blanco);border:1px solid var(--color-borde);border-radius:8px;padding:14px;font-size:12px;font-weight:600">radius-md · 8&nbsp;px<br /><span style="color:var(--color-texto-secundario)">botones, inputs</span></div>
+      <div style="background:var(--color-blanco);border:1px solid var(--color-borde);border-radius:12px;padding:14px;font-size:12px;font-weight:600">radius-lg · 12&nbsp;px<br /><span style="color:var(--color-texto-secundario)">paneles, alertas</span></div>
+      <div style="background:var(--color-blanco);border:1px solid var(--color-borde);border-radius:16px;padding:14px;font-size:12px;font-weight:600">radius-xl · 16&nbsp;px<br /><span style="color:var(--color-texto-secundario)">cards, tarjetas</span></div>
+      <div style="background:var(--color-blanco);border:1px solid var(--color-borde);border-radius:24px;padding:14px;font-size:12px;font-weight:600">radius-2xl · 24&nbsp;px<br /><span style="color:var(--color-texto-secundario)">banners, secciones</span></div>
+      <div style="background:var(--color-blanco);border:1px solid var(--color-borde);border-radius:9999px;padding:14px;font-size:12px;font-weight:600">radius-full<br /><span style="color:var(--color-texto-secundario)">píldoras, avatares</span></div>
+    </div>
+
+    <div class="note">
+      <strong>Escala de espaciado (múltiplos de 4&nbsp;px):</strong> 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 48.
+      En la práctica: <code class="inline">p-3</code> en píldoras, <code class="inline">p-4</code> en
+      contenido de card, <code class="inline">p-6</code> en paneles, <code class="inline">p-8</code> en
+      banners y secciones. El ritmo vertical entre secciones es de 48–64&nbsp;px.
+    </div>
+
+    <div class="shadow-row" style="margin-top:8px">
+      <div class="shadow-sample shadow-nav">shadow-nav</div>
+      <div class="shadow-sample shadow-card">shadow-card</div>
+      <div class="shadow-sample shadow-card-hover">shadow-card-hover</div>
+      <div class="shadow-sample shadow-balance">shadow-balance</div>
+      <div class="shadow-sample shadow-modal">shadow-modal</div>
+    </div>
+
+    <h3>2.4 Estados de interacción</h3>
+    <div class="table-wrap">
+      <table class="tokens">
+        <thead>
+          <tr><th>Estado</th><th>Tratamiento</th><th>Aplicación</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Reposo</td><td>Token base del componente</td><td><code>bg-primary</code>, <code>border-borde</code>, <code>shadow-card</code></td></tr>
+          <tr><td>Hover</td><td>Token <code>-dark</code> o borde con tinte del primario + sombra superior</td><td><code>hover:bg-primary-dark</code>, <code>hover:border-primary/40</code></td></tr>
+          <tr><td>Focus visible</td><td>Anillo de 2&nbsp;px del color de acción (con offset sobre el fondo)</td><td><code>focus-visible:ring-2 focus-visible:ring-primary</code></td></tr>
+          <tr><td>Active</td><td>Mismo token oscuro + desplazamiento de 1&nbsp;px</td><td><code>active:translate-y-px</code></td></tr>
+          <tr><td>Disabled</td><td>Opacidad 60&nbsp;% y cursor bloqueado</td><td><code>disabled:opacity-60 disabled:cursor-not-allowed</code></td></tr>
+          <tr><td>Loading</td><td>Spinner <code>animate-spin</code> junto al texto y botón inhabilitado</td><td><code>aria-busy="true"</code></td></tr>
+          <tr><td>Error</td><td>Borde y texto en rojo + <code>aria-invalid</code></td><td><code>aria-invalid:border-error</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       3. ENCABEZADOS Y NAVEGACIÓN
+       ================================================================ -->
+  <section class="section" id="encabezados">
+    <h2><span class="num">03</span> Encabezados y navegación</h2>
+    <p class="section__lead">
+      Cuatro piezas cubren toda la jerarquía de encabezados: la etiqueta o
+      <em>eyebrow</em> que introduce un contexto, el encabezado de página, el encabezado de sección
+      y las barras de navegación (escritorio y móvil).
+    </p>
+
+    <h3>3.1 Etiqueta (eyebrow)</h3>
+    <div class="demo">
+      <span class="eyebrow">Descubre Nicaragua</span>
+      <span class="eyebrow eyebrow--amber" style="margin-left:18px">Del barro a tus manos</span>
+    </div>
+<pre class="code">&lt;span class="text-xs font-bold tracking-widest text-secondary uppercase border-l-2 border-secondary pl-2"&gt;
+  Descubre Nicaragua
+&lt;/span&gt;</pre>
+
+    <h3>3.2 Encabezado de página</h3>
+    <div class="demo">
+      <div class="page-head">
+        <div>
+          <span class="eyebrow">Catálogo</span>
+          <h3 class="page-head__title">Artesanías de Nicaragua</h3>
+          <p class="page-head__sub">142 piezas de 28 talleres · Actualizado hoy</p>
+        </div>
+        <div class="page-head__actions">
+          <button class="btn btn--outline btn--sm" type="button">⇅ Ordenar</button>
+          <button class="btn btn--primary btn--sm" type="button">＋ Publicar pieza</button>
+        </div>
+      </div>
+    </div>
+<pre class="code">&lt;div class="flex flex-wrap items-end justify-between gap-4"&gt;
+  &lt;div&gt;
+    &lt;span class="text-xs font-bold tracking-widest text-secondary uppercase border-l-2 border-secondary pl-2"&gt;Catálogo&lt;/span&gt;
+    &lt;h1 class="mt-2 text-3xl font-bold text-texto"&gt;Artesanías de Nicaragua&lt;/h1&gt;
+    &lt;p class="text-sm text-texto-secundario"&gt;142 piezas de 28 talleres&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div class="flex items-center gap-2"&gt;…acciones…&lt;/div&gt;
+&lt;/div&gt;</pre>
+
+    <h3>3.3 Encabezado de sección</h3>
+    <div class="demo">
+      <div style="max-width:620px">
+        <div class="section-head">
+          <h4>Piezas destacadas</h4>
+          <a class="section-head__link" href="#tarjetas">Ver todo →</a>
+        </div>
+        <p class="card__text" style="margin:0">Barra de título con acción secundaria a la derecha; separador inferior solo cuando la sección tiene scroll propio.</p>
+      </div>
+    </div>
+<pre class="code">&lt;div class="flex items-baseline justify-between gap-3 mb-3.5"&gt;
+  &lt;h2 class="text-lg font-bold text-texto"&gt;Piezas destacadas&lt;/h2&gt;
+  &lt;a href="/productos" class="text-sm font-semibold text-primary hover:underline inline-flex items-center gap-1"&gt;Ver todo →&lt;/a&gt;
+&lt;/div&gt;</pre>
+
+    <h3>3.4 Barra de navegación (escritorio)</h3>
+    <div class="demo" style="padding:0">
+      <div class="topbar">
+        <a class="topbar__brand" href="#encabezados">
+          <span class="topbar__logo" aria-hidden="true">🏺</span>
+          <span>ArtesaNica</span>
+        </a>
+        <ul class="topbar__nav">
+          <li><a class="topbar__link" href="#encabezados" aria-current="page"><i aria-hidden="true">🔎</i>Productos</a></li>
+          <li><a class="topbar__link" href="#encabezados"><i aria-hidden="true">📰</i>Noticias</a></li>
+          <li><a class="topbar__link" href="#encabezados"><i aria-hidden="true">🗺️</i>Mapa</a></li>
+        </ul>
+        <div class="topbar__actions">
+          <button class="btn btn--ghost btn--sm" type="button" aria-label="Cambiar idioma">🌐 ES</button>
+          <button class="btn btn--ghost btn--icon" type="button" aria-label="Cambiar tema">🌙</button>
+          <button class="btn btn--primary btn--sm" type="button">Mi perfil</button>
+        </div>
+      </div>
+    </div>
+<pre class="code">&lt;header class="hidden md:block bg-blanco shadow-nav sticky top-0 z-40"&gt;
+  &lt;div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-6"&gt;
+    &lt;a href="/" class="flex items-center gap-2.5 text-2xl font-bold text-primary"&gt;
+      &lt;img src="/logo.png" alt="" class="h-10 w-auto" /&gt;
+      &lt;span class="font-extrabold tracking-tight"&gt;ArtesaNica&lt;/span&gt;
+    &lt;/a&gt;
+    &lt;nav class="flex items-center gap-10"&gt;
+      &lt;a href="/productos" class="flex flex-col items-center text-texto hover:text-primary transition-colors px-1"&gt;
+        &lt;Icon name="lucide:search" class="text-2xl mb-1" /&gt;
+        &lt;span class="text-sm font-medium"&gt;Productos&lt;/span&gt;
+      &lt;/a&gt;
+      …
+    &lt;/nav&gt;
+  &lt;/div&gt;
+&lt;/header&gt;</pre>
+
+    <h3>3.5 Barra de navegación (móvil)</h3>
+    <div class="demo" style="max-width:420px">
+      <div class="topbar topbar--mobile">
+        <button class="btn btn--ghost btn--icon" type="button" aria-label="Buscar">🔎</button>
+        <a class="topbar__brand" href="#encabezados"><span>ArtesaNica</span></a>
+        <button class="btn btn--outline btn--sm" type="button" aria-label="Abrir menú">ES</button>
+      </div>
+    </div>
+<pre class="code">&lt;header class="md:hidden sticky top-0 z-40 bg-blanco/95 backdrop-blur-md border-b border-borde px-4 py-3 flex items-center justify-between shadow-xs"&gt;
+  &lt;button class="p-1.5 -ml-1 text-primary hover:text-primary-dark transition-colors" aria-label="Buscar"&gt;
+    &lt;Icon name="lucide:search" class="text-2xl" /&gt;
+  &lt;/button&gt;
+  &lt;a href="/" class="text-xl font-extrabold text-primary tracking-tight"&gt;ArtesaNica&lt;/a&gt;
+  &lt;button class="px-2 py-0.5 text-xs font-bold uppercase rounded border border-borde text-texto bg-fondo"&gt;ES&lt;/button&gt;
+&lt;/header&gt;</pre>
+
+    <div class="note">
+      <strong>Reglas de encabezados:</strong> un solo <code class="inline">&lt;h1&gt;</code> por vista; el
+      eyebrow nunca sustituye al título; las acciones del encabezado usan el tamaño
+      <em>sm</em> y como máximo <strong>dos</strong> botones (una primaria + una secundaria);
+      en móvil los encabezados de página se apilan y el bloque de acciones pasa debajo.
+    </div>
+  </section>
+
+  <!-- ================================================================
+       4. BOTONES
+       ================================================================ -->
+  <section class="section" id="botones">
+    <h2><span class="num">04</span> Botones</h2>
+    <p class="section__lead">
+      Seis variantes, cuatro tamaños y cuatro estados. Regla de jerarquía: <strong>una sola acción
+      primaria (terracota) por vista</strong>; el resto usa secundario, contorno o fantasma.
+    </p>
+
+    <h4>Variantes</h4>
+    <div class="demo demo--center">
+      <button class="btn btn--primary" type="button">Comprar ahora</button>
+      <button class="btn btn--secondary" type="button">Explorar mapa</button>
+      <button class="btn btn--outline" type="button">Ver detalles</button>
+      <button class="btn btn--ghost" type="button">Cancelar</button>
+      <button class="btn btn--link" type="button">¿Olvidaste tu contraseña?</button>
+      <button class="btn btn--danger" type="button">Eliminar pieza</button>
+    </div>
+<pre class="code">&lt;!-- Primario (Terracota): acción principal --&gt;
+&lt;button class="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-lg font-semibold transition-colors shadow-sm"&gt;
+  Comprar ahora
+&lt;/button&gt;
+
+&lt;!-- Secundario (Azul Añil): acción de exploración / institucional --&gt;
+&lt;button class="bg-secondary hover:bg-secondary-dark text-white px-5 py-2.5 rounded-lg font-semibold transition-colors shadow-sm"&gt;
+  Explorar mapa
+&lt;/button&gt;
+
+&lt;!-- Contorno: acción alternativa de igual peso visual --&gt;
+&lt;button class="border border-primary text-primary hover:bg-primary/10 px-5 py-2.5 rounded-lg font-semibold transition-colors"&gt;
+  Ver detalles
+&lt;/button&gt;
+
+&lt;!-- Fantasma y enlace: acciones terciarias sin peso --&gt;
+&lt;button class="text-texto hover:bg-accent px-4 py-2.5 rounded-lg font-medium transition-colors"&gt;Cancelar&lt;/button&gt;
+&lt;button class="text-primary hover:text-primary-dark font-medium hover:underline underline-offset-4"&gt;¿Olvidaste tu contraseña?&lt;/button&gt;</pre>
+
+    <h4>Tamaños</h4>
+    <div class="demo demo--center">
+      <button class="btn btn--primary btn--sm" type="button">Pequeño · sm</button>
+      <button class="btn btn--primary" type="button">Estándar · default</button>
+      <button class="btn btn--primary btn--lg" type="button">Grande · lg</button>
+      <button class="btn btn--outline btn--icon" type="button" aria-label="Favorito">♡</button>
+    </div>
+<pre class="code">&lt;button class="… h-8 text-xs px-3"&gt;Pequeño&lt;/button&gt;   &lt;!-- sm --&gt;
+&lt;button class="… h-10 text-sm px-5"&gt;Estándar&lt;/button&gt;  &lt;!-- default --&gt;
+&lt;button class="… h-12 text-base px-6"&gt;Grande&lt;/button&gt;   &lt;!-- lg --&gt;
+&lt;button class="… size-9 grid place-items-center rounded-full" aria-label="Favorito"&gt;♡&lt;/button&gt; &lt;!-- icon --&gt;</pre>
+
+    <h4>Estados</h4>
+    <div class="demo demo--center">
+      <button class="btn btn--primary" type="button">Reposo</button>
+      <button class="btn btn--primary" type="button" style="background:var(--color-primary-dark)">Hover</button>
+      <button class="btn btn--primary is-focus-visible" type="button">Focus visible</button>
+      <button class="btn btn--primary" type="button" disabled>Disabled</button>
+      <button class="btn btn--primary" type="button" aria-busy="true" disabled>
+        <span class="spinner" aria-hidden="true"></span> Ingresando…
+      </button>
+    </div>
+<pre class="code">&lt;!-- El estado focus-visible y hover los aplica el navegador;
+     en Tailwind se declaran en la propia clase del botón --&gt;
+&lt;button
+  class="inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3 rounded-lg
+         font-semibold hover:bg-primary-dark focus:outline-none focus-visible:ring-2
+         focus-visible:ring-primary focus-visible:ring-offset-2
+         disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+  :disabled="loading"
+&gt;
+  &lt;Icon v-if="loading" name="lucide:loader-circle" class="animate-spin" /&gt;
+  {loading ? 'Ingresando…' : 'Ingresar'}
+&lt;/button&gt;</pre>
+
+    <h4>Con icono y ancho completo</h4>
+    <div class="demo" style="max-width:380px">
+      <button class="btn btn--primary btn--block" type="button">💬 Pedir por WhatsApp</button>
+      <div style="height:12px"></div>
+      <button class="btn btn--outline btn--block" type="button">🗺️ Ver el taller en el mapa</button>
+      <div style="height:12px"></div>
+      <button class="btn btn--secondary btn--block" type="button">＋ Agregar al carrito</button>
+    </div>
+
+    <div class="table-wrap" style="margin-top:16px">
+      <table class="tokens">
+        <caption>Cuándo usar cada variante</caption>
+        <thead>
+          <tr><th>Variante</th><th>Intención</th><th>Contraste</th><th>Máximo por vista</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>primary</code></td><td>Comprar, guardar, publicar, ingresar</td><td>4.7:1 (AA)</td><td>1</td></tr>
+          <tr><td><code>secondary</code></td><td>Explorar, navegar, acciones de contexto azul</td><td>7.6:1 (AAA)</td><td>2</td></tr>
+          <tr><td><code>outline</code></td><td>Alternativa de igual peso sin competir con la primaria</td><td>4.7:1 (AA)</td><td>3</td></tr>
+          <tr><td><code>ghost</code> / <code>link</code></td><td>Acciones terciarias, «cancelar», enlaces de apoyo</td><td>4.7:1 (AA)</td><td>sin límite</td></tr>
+          <tr><td><code>danger</code></td><td>Acciones destructivas (eliminar, desactivar)</td><td>4.5:1 (AA)</td><td>Solo en confirmaciones</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       5. TARJETAS
+       ================================================================ -->
+  <section class="section" id="tarjetas">
+    <h2><span class="num">05</span> Tarjetas (cards)</h2>
+    <p class="section__lead">
+      La tarjeta es el contenedor base de la plataforma: superficie
+      <code class="inline">bg-blanco</code>, borde <code class="inline">border-borde</code>,
+      radio de 16&nbsp;px y <code class="inline">shadow-card</code>. Al ser interactiva sube 2&nbsp;px y
+      pasa a <code class="inline">shadow-card-hover</code> con el borde en terracota.
+    </p>
+
+    <h3>5.1 Tarjeta de producto</h3>
+    <div class="card-grid" style="margin-top:12px">
+      <article class="card card--interactive">
+        <div class="card__media">
+          🏺
+          <div class="card__badges">
+            <span class="badge badge--primary">Cerámica</span>
+          </div>
+        </div>
+        <div class="card__body">
+          <div class="card__meta">
+            <span>🏪 Taller San Juan de Oriente</span>
+            <span class="badge badge--rating">★ 4.9 <span style="font-weight:400;color:var(--color-texto-secundario)">(23)</span></span>
+          </div>
+          <h3 class="card__title">Jarrón de barro vidriado</h3>
+          <div class="card__footer">
+            <div>
+              <span class="card__price-label">Precio</span>
+              <span class="card__price">C$ 450.00</span>
+            </div>
+            <button class="card__cta" type="button" aria-label="Ver detalle">→</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card card--interactive">
+        <div class="card__media">🧺</div>
+        <div class="card__body">
+          <div class="card__meta">
+            <span>🏪 Mimbre de Masatepe</span>
+            <span class="badge badge--rating">★ 4.7 <span style="font-weight:400;color:var(--color-texto-secundario)">(11)</span></span>
+          </div>
+          <h3 class="card__title">Canasta tejida de mimbre</h3>
+          <div class="card__footer">
+            <div>
+              <span class="card__price-label">Precio</span>
+              <span class="card__price">C$ 780.00</span>
+            </div>
+            <button class="card__cta" type="button" aria-label="Ver detalle">→</button>
+          </div>
+        </div>
+      </article>
+    </div>
+<pre class="code">&lt;article class="bg-blanco rounded-2xl overflow-hidden border border-borde shadow-card
+                hover:shadow-card-hover hover:border-primary/40 hover:-translate-y-0.5 transition-all group"&gt;
+  &lt;div class="relative aspect-square bg-primary-light grid place-items-center text-primary text-3xl"&gt;
+    &lt;img src="…" alt="Jarrón de barro vidriado" class="w-full h-full object-cover" /&gt;
+    &lt;span class="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary text-white"&gt;Cerámica&lt;/span&gt;
+  &lt;/div&gt;
+  &lt;div class="p-4 flex-1 flex flex-col justify-between"&gt;
+    &lt;div class="flex items-center justify-between gap-2 mb-1"&gt;
+      &lt;span class="text-xs text-texto-secundario truncate"&gt;Taller San Juan de Oriente&lt;/span&gt;
+      &lt;span class="text-xs font-bold text-rating"&gt;★ 4.9 &lt;span class="text-[10px] text-texto-secundario font-normal"&gt;(23)&lt;/span&gt;&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;h3 class="font-bold text-texto text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors"&gt;
+      Jarrón de barro vidriado
+    &lt;/h3&gt;
+    &lt;div class="mt-4 pt-3 border-t border-borde/50 flex items-center justify-between"&gt;
+      &lt;span class="text-primary font-extrabold text-lg"&gt;C$ 450.00&lt;/span&gt;
+      &lt;span class="size-8 rounded-full bg-fondo grid place-items-center hover:bg-primary hover:text-primary-foreground transition-colors"&gt;→&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/article&gt;</pre>
+
+    <h3>5.2 Tarjeta de métrica</h3>
+    <div class="card-grid" style="margin-top:12px">
+      <div class="stat-card">
+        <div class="stat-card__top">
+          <span class="icon-tile" aria-hidden="true">🛒</span>
+          <span class="badge badge--success">+12&nbsp;%</span>
+        </div>
+        <span class="stat-card__label">Ventas del mes</span>
+        <span class="stat-card__value">C$ 24,850</span>
+        <span class="stat-card__delta">↑ 18 pedidos nuevos</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__top">
+          <span class="icon-tile icon-tile--secondary" aria-hidden="true">📦</span>
+        </div>
+        <span class="stat-card__label">Inventario activo</span>
+        <span class="stat-card__value">37 piezas</span>
+        <span class="card__text">4 con stock bajo</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__top">
+          <span class="icon-tile icon-tile--amber" aria-hidden="true">★</span>
+        </div>
+        <span class="stat-card__label">Valoración media</span>
+        <span class="stat-card__value" style="color:var(--color-rating)">4.8</span>
+        <span class="card__text">Sobre 126 valoraciones</span>
+      </div>
+    </div>
+<pre class="code">&lt;div class="bg-blanco border border-borde rounded-2xl p-4.5 shadow-card flex flex-col gap-2.5"&gt;
+  &lt;div class="flex items-center justify-between"&gt;
+    &lt;span class="size-11 rounded-xl grid place-items-center bg-primary-light text-primary"&gt;🛒&lt;/span&gt;
+    &lt;span class="badge bg-exito/14 text-exito text-xs font-bold rounded-full px-2.5 py-0.5"&gt;+12 %&lt;/span&gt;
+  &lt;/div&gt;
+  &lt;span class="text-xs font-semibold uppercase tracking-wide text-texto-secundario"&gt;Ventas del mes&lt;/span&gt;
+  &lt;span class="text-2xl font-extrabold text-texto"&gt;C$ 24,850&lt;/span&gt;
+&lt;/div&gt;</pre>
+
+    <h3>5.3 Tarjeta contenedora y tarjeta-banner</h3>
+    <div class="demo" style="padding:20px">
+      <div class="card card--flat" style="padding:18px">
+        <div class="section-head" style="margin-bottom:8px">
+          <h4>Datos del taller</h4>
+          <a class="section-head__link" href="#tarjetas">Editar</a>
+        </div>
+        <p class="card__text" style="margin:0">
+          Contenedor neutro para agrupar campos, listas o gráficos dentro de una vista. Radio de
+          8–12&nbsp;px, sin sombra cuando va dentro de otro panel.
+        </p>
+      </div>
+      <div class="card card--banner" style="margin-top:18px;padding:22px">
+        <span class="eyebrow">Descubre Nicaragua</span>
+        <h3 class="card__title" style="font-size:22px;margin:6px 0 4px">Ruta de Pueblos Artesanales</h3>
+        <p class="card__text" style="margin:0 0 14px">Cuatro paradas con historia, oficio y compra directa al artesano.</p>
+        <div class="badge-row">
+          <a class="badge badge--outline" href="#tarjetas">Niquinohomo · cerámica</a>
+          <a class="badge badge--outline" href="#tarjetas">Masatepe · mimbre</a>
+          <a class="badge badge--outline" href="#tarjetas">San Juan de Oriente · barro</a>
+          <a class="badge badge--outline" href="#tarjetas">Granada · orfebrería</a>
+        </div>
+      </div>
+    </div>
+<pre class="code">&lt;!-- Banner de ruta (claro) --&gt;
+&lt;section class="bg-banner-bg border border-banner-border rounded-3xl p-6 sm:p-8 shadow-2xs"&gt;
+  &lt;span class="text-xs font-bold tracking-widest text-secondary uppercase border-l-2 border-secondary pl-2"&gt;Descubre Nicaragua&lt;/span&gt;
+  &lt;h2 class="text-2xl font-bold text-texto mt-1"&gt;Ruta de Pueblos Artesanales&lt;/h2&gt;
+  &lt;div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6"&gt;
+    &lt;a class="bg-blanco rounded-2xl p-4 border border-pill-border hover:border-secondary/50 transition-all"&gt;…&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/section&gt;</pre>
+
+    <h3>5.4 Tarjeta oscura destacada</h3>
+    <div class="card card--dark" style="margin-top:12px;padding:24px">
+      <span class="eyebrow eyebrow--amber">Del barro a tus manos</span>
+      <h3 class="card__title" style="font-size:24px;margin:8px 0 16px">El Proceso Artesanal</h3>
+      <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px">
+          <span class="icon-tile icon-tile--amber" style="background:rgba(226,163,73,.2)" aria-hidden="true">⛏️</span>
+          <p style="margin:10px 0 2px;font-weight:700;font-size:14px">Extracción de barro</p>
+          <p class="card__text" style="font-size:12px;margin:0">Arcilla pura de canteras tradicionales.</p>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px">
+          <span class="icon-tile" style="background:rgba(184,85,54,.25);color:#de7d5f" aria-hidden="true">🤲</span>
+          <p style="margin:10px 0 2px;font-weight:700;font-size:14px">Modelado a mano</p>
+          <p class="card__text" style="font-size:12px;margin:0">Torneado y bruñido sin molde industrial.</p>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px">
+          <span class="icon-tile icon-tile--amber" style="background:rgba(226,163,73,.2)" aria-hidden="true">🔥</span>
+          <p style="margin:10px 0 2px;font-weight:700;font-size:14px">Cocción artesanal</p>
+          <p class="card__text" style="font-size:12px;margin:0">Horno de leña a cielo abierto.</p>
+        </div>
+      </div>
+    </div>
+<pre class="code">&lt;section class="bg-gradient-to-br from-[#0c131f] via-[#1a1210] to-[#0c131f] rounded-3xl p-8
+                border border-primary/30 text-white relative overflow-hidden"&gt;
+  &lt;span class="text-xs font-bold tracking-widest text-accent-amber uppercase border-l-2 border-accent-amber pl-2"&gt;Del barro a tus manos&lt;/span&gt;
+  &lt;h2 class="text-3xl font-extrabold text-white mt-1"&gt;El Proceso Artesanal&lt;/h2&gt;
+  &lt;div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6"&gt;
+    &lt;div class="bg-white/5 backdrop-blur-md rounded-2xl p-5 border border-white/10 hover:border-accent-amber/50 transition-all"&gt;
+      &lt;div class="size-12 bg-accent-amber/20 text-accent-amber rounded-xl grid place-items-center text-xl mb-4"&gt;
+        &lt;Icon name="lucide:shovel" /&gt;
+      &lt;/div&gt;
+      &lt;h3 class="text-sm font-bold text-white"&gt;1. Extracción de Barro&lt;/h3&gt;
+      &lt;p class="text-xs text-gray-300"&gt;Arcilla pura extraída de las canteras tradicionales.&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;</pre>
+
+    <div class="note">
+      <strong>Anatomía de una card:</strong> <em>media</em> (imagen o tile, relación 1:1 o 16:9) →
+      <em>metadatos</em> (origen + valoración) → <em>título</em> (máximo 2 líneas) →
+      <em>pie</em> (precio y acción, separados con <code class="inline">border-t</code>).
+      Las cards de una misma fila igualan altura y alinean el pie al fondo
+      (<code class="inline">flex flex-col</code> + <code class="inline">mt-auto</code>).
+    </div>
+  </section>
+
+  <!-- ================================================================
+       6. FORMULARIOS
+       ================================================================ -->
+  <section class="section" id="formularios">
+    <h2><span class="num">06</span> Formularios</h2>
+    <p class="section__lead">
+      Todo campo se compone de etiqueta + control + ayuda + error, en ese orden, con
+      <code class="inline">gap</code> de 6&nbsp;px. El control usa
+      <code class="inline">bg-blanco</code>, <code class="inline">border-borde</code> y radio de 8&nbsp;px;
+      el foco se marca con un anillo interior de 2&nbsp;px.
+    </p>
+
+    <h3>6.1 Anatomía y estados del campo</h3>
+    <div class="demo">
+      <div class="form form--2col">
+        <div class="field">
+          <label class="field__label" for="f-normal">Nombre de la pieza</label>
+          <input class="input" id="f-normal" type="text" placeholder="Ej. Jarrón vidriado" />
+          <span class="field__hint">Así se ve un campo en reposo con texto de ayuda.</span>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-focus">Foco visible</label>
+          <input class="input is-focus-visible" id="f-focus" type="text" value="Canasta de mimbre" />
+          <span class="field__hint">Anillo de 2&nbsp;px <code class="inline">ring-primary</code>.</span>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-error">Precio <span class="req" aria-hidden="true">*</span></label>
+          <input class="input" id="f-error" type="text" value="0" aria-invalid="true" aria-describedby="f-error-msg" />
+          <span class="field__error" id="f-error-msg">
+            <span aria-hidden="true">⚠</span> El precio debe ser mayor que cero.
+          </span>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-disabled">Departamento</label>
+          <input class="input" id="f-disabled" type="text" value="Masaya" disabled />
+          <span class="field__hint">Campo inhabilitado (<code class="inline">disabled</code>).</span>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-readonly">Identificador</label>
+          <input class="input" id="f-readonly" type="text" value="prod_8F2A19" readonly />
+          <span class="field__hint">Solo lectura: se envía con el formulario.</span>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-valid">Correo verificado</label>
+          <input class="input is-focus-visible" id="f-valid" type="email" value="artesano@artesanica.ni" style="border-color:var(--color-exito)" />
+          <span class="field__hint" style="color:var(--color-exito)">✓ Dirección disponible.</span>
+        </div>
+      </div>
+    </div>
+<pre class="code">&lt;div class="flex flex-col gap-1.5"&gt;
+  &lt;label for="precio" class="text-sm font-medium text-texto"&gt;Precio &lt;span class="text-error"&gt;*&lt;/span&gt;&lt;/label&gt;
+
+  &lt;input
+    id="precio"
+    name="precio"
+    type="number"
+    inputmode="decimal"
+    required
+    aria-describedby="precio-ayuda precio-error"
+    class="w-full px-4 py-2.5 border border-borde rounded-lg bg-blanco text-texto
+           placeholder:text-texto-secundario
+           focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+           disabled:opacity-60 transition-colors"
+  /&gt;
+
+  &lt;span id="precio-ayuda" class="text-xs text-texto-secundario"&gt;En córdobas, sin símbolo.&lt;/span&gt;
+  &lt;span id="precio-error" class="text-xs font-semibold text-error"&gt;El precio debe ser mayor que cero.&lt;/span&gt;
+&lt;/div&gt;</pre>
+
+    <h3>6.2 Campo con icono y con acción</h3>
+    <div class="demo">
+      <div class="form form--2col">
+        <div class="field">
+          <label class="field__label" for="f-icon">Buscar artesanía</label>
+          <div class="input-wrap">
+            <span class="input-wrap__icon" aria-hidden="true">🔎</span>
+            <input class="input" id="f-icon" type="search" placeholder="Cerámica, mimbre, hamaca…" autocomplete="off" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-pass">Contraseña</label>
+          <div class="input-wrap input-wrap--suffix">
+            <span class="input-wrap__icon" aria-hidden="true">🔒</span>
+            <input class="input" id="f-pass" type="password" value="Segura1234!" autocomplete="current-password" />
+            <button class="input-wrap__action" type="button" aria-label="Mostrar contraseña">👁</button>
+          </div>
+          <span class="field__hint">La acción nunca oculta la etiqueta ni el valor real del campo.</span>
+        </div>
+      </div>
+    </div>
+<pre class="code">&lt;div class="relative"&gt;
+  &lt;Icon name="lucide:search" class="absolute left-3 top-1/2 -translate-y-1/2 text-texto-secundario text-lg pointer-events-none" /&gt;
+  &lt;input class="w-full pl-11 pr-4 py-2.5 border border-borde rounded-lg bg-blanco text-texto
+                focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" /&gt;
+&lt;/div&gt;
+
+&lt;button type="button" aria-label="Mostrar contraseña"
+  class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-texto-secundario hover:text-primary rounded-md
+         focus:outline-none focus:ring-2 focus:ring-primary transition-colors"&gt;
+  &lt;Icon name="lucide:eye" /&gt;
+&lt;/button&gt;</pre>
+
+    <h3>6.3 Selección, texto largo y opciones</h3>
+    <div class="demo">
+      <div class="form form--2col">
+        <div class="field">
+          <label class="field__label" for="f-select">Departamento</label>
+          <select class="select" id="f-select">
+            <option>Masaya</option>
+            <option>Granada</option>
+            <option>León</option>
+            <option>Rivas (Ometepe)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-select2">Ordenar por</label>
+          <select class="select" id="f-select2">
+            <option>Más recientes</option>
+            <option>Precio: menor a mayor</option>
+            <option>Mejor valoradas</option>
+          </select>
+        </div>
+        <div class="field form__full">
+          <label class="field__label" for="f-textarea">Historia de la pieza</label>
+          <textarea class="textarea" id="f-textarea" placeholder="Técnica, materiales, origen…" maxlength="280"></textarea>
+          <span class="field__hint">Máximo 280 caracteres. La descripción aparece en la ficha del producto.</span>
+        </div>
+      </div>
+
+      <fieldset class="fieldset" style="margin-top:18px">
+        <legend>Visibilidad de la publicación</legend>
+        <div style="display:grid;gap:10px">
+          <label class="check"><input type="radio" name="vis" checked /> <span>Pública — aparece en el catálogo y en el mapa</span></label>
+          <label class="check"><input type="radio" name="vis" /> <span>Solo con enlace — visible para quien tenga la URL</span></label>
+        </div>
+      </fieldset>
+
+      <div style="display:grid;gap:12px;margin-top:16px">
+        <label class="check"><input type="checkbox" checked /> <span>Acepto que ArtesaNica muestre el nombre de mi taller junto a la pieza</span></label>
+        <label class="check"><input type="checkbox" /> <span>Recibir avisos de nuevos pedidos por correo</span></label>
+        <label class="switch"><input type="checkbox" checked /><span class="switch__track"><span class="switch__thumb"></span></span> Fijar la pieza en mi perfil</label>
+      </div>
+    </div>
+<pre class="code">&lt;!-- Select y textarea comparten la misma piel que el input --&gt;
+&lt;select class="w-full px-3.5 py-2.5 border border-borde rounded-lg bg-blanco text-texto
+               focus:outline-none focus:ring-2 focus:ring-primary"&gt;…&lt;/select&gt;
+&lt;textarea class="w-full min-h-26 px-3.5 py-2.5 border border-borde rounded-lg bg-blanco text-texto
+                 focus:outline-none focus:ring-2 focus:ring-primary resize-y"&gt;&lt;/textarea&gt;
+
+&lt;!-- Casilla con área táctil de 44 px --&gt;
+&lt;label class="flex items-start gap-2.5 text-sm cursor-pointer"&gt;
+  &lt;input type="checkbox" class="mt-0.5 size-4.5 accent-primary rounded" /&gt;
+  &lt;span&gt;Acepto que se muestre el nombre de mi taller&lt;/span&gt;
+&lt;/label&gt;
+
+&lt;!-- Interruptor (switch) de preferencias --&gt;
+&lt;label class="inline-flex items-center gap-2.5 text-sm font-semibold cursor-pointer"&gt;
+  &lt;input type="checkbox" class="peer sr-only" /&gt;
+  &lt;span class="w-11 h-6 rounded-full bg-borde peer-checked:bg-primary p-0.5 transition-colors flex"&gt;
+    &lt;span class="size-5 rounded-full bg-blanco shadow-xs transition-transform peer-checked:translate-x-5"&gt;&lt;/span&gt;
+  &lt;/span&gt;
+  Fijar la pieza en mi perfil
+&lt;/label&gt;</pre>
+
+    <h3>6.4 Código de un solo uso (2FA)</h3>
+    <div class="demo">
+      <div class="field" style="max-width:360px">
+        <span class="field__label" id="otp-label">Código de verificación</span>
+        <div class="otp" role="group" aria-labelledby="otp-label">
+          <input type="text" inputmode="numeric" maxlength="1" value="4" aria-label="Dígito 1" />
+          <input type="text" inputmode="numeric" maxlength="1" value="2" aria-label="Dígito 2" />
+          <input type="text" inputmode="numeric" maxlength="1" value="8" aria-label="Dígito 3" />
+          <input type="text" inputmode="numeric" maxlength="1" value="" aria-label="Dígito 4" />
+          <input type="text" inputmode="numeric" maxlength="1" value="" aria-label="Dígito 5" />
+          <input type="text" inputmode="numeric" maxlength="1" value="" aria-label="Dígito 6" />
+        </div>
+        <span class="field__hint">Ingresá el código de 6 dígitos de tu app autenticadora.</span>
+      </div>
+    </div>
+<pre class="code">&lt;input
+  type="text"
+  inputmode="numeric"
+  autocomplete="one-time-code"
+  maxlength="6"
+  aria-label="Código de verificación"
+  class="w-56 text-center tracking-[0.5em] text-2xl font-bold px-3.5 py-2.5
+         border border-borde rounded-lg bg-blanco text-texto
+         focus:outline-none focus:ring-2 focus:ring-primary"
+/&gt;</pre>
+
+    <h3>6.5 Formulario completo</h3>
+    <div class="demo">
+      <form class="form form--2col" onsubmit="return false">
+        <div class="field">
+          <label class="field__label" for="p-nombre">Nombre de la pieza <span class="req" aria-hidden="true">*</span></label>
+          <input class="input" id="p-nombre" type="text" placeholder="Jarrón de barro vidriado" required />
+        </div>
+        <div class="field">
+          <label class="field__label" for="p-precio">Precio (C$) <span class="req" aria-hidden="true">*</span></label>
+          <input class="input" id="p-precio" type="text" inputmode="decimal" placeholder="450.00" required />
+        </div>
+        <div class="field">
+          <label class="field__label" for="p-cat">Categoría</label>
+          <select class="select" id="p-cat">
+            <option>Cerámica</option>
+            <option>Textiles</option>
+            <option>Madera</option>
+            <option>Orfebrería</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="p-dep">Departamento de origen</label>
+          <select class="select" id="p-dep">
+            <option>Masaya</option>
+            <option>Granada</option>
+            <option>León</option>
+          </select>
+        </div>
+        <div class="field form__full">
+          <label class="field__label" for="p-desc">Descripción</label>
+          <textarea class="textarea" id="p-desc" placeholder="Técnica, materiales, tiempo de elaboración…"></textarea>
+          <span class="field__hint">Se muestra en la ficha pública del producto.</span>
+        </div>
+        <div class="form__full">
+          <div class="alert alert--error" role="alert">
+            <span aria-hidden="true">⚠</span>
+            <div>
+              <strong>Revisá 2 campos</strong>
+              El nombre es obligatorio y el precio debe ser mayor que cero.
+            </div>
+          </div>
+        </div>
+        <div class="form__full form-actions">
+          <button class="btn btn--ghost" type="reset">Cancelar</button>
+          <button class="btn btn--primary" type="submit">Publicar pieza</button>
+        </div>
+      </form>
+    </div>
+<pre class="code">&lt;!-- Resumen de errores: se coloca antes de las acciones y recibe el foco al enviar --&gt;
+&lt;div role="alert" class="flex items-start gap-2.5 p-3 rounded-lg bg-error/10 text-error text-sm"&gt;
+  &lt;Icon name="lucide:triangle-alert" class="shrink-0" /&gt;
+  &lt;div&gt;&lt;strong class="block"&gt;Revisá 2 campos&lt;/strong&gt;…detalle…&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- Acciones: secundaria a la izquierda, primaria a la derecha (o apiladas en móvil) --&gt;
+&lt;div class="flex flex-wrap items-center justify-end gap-2.5"&gt;
+  &lt;button type="reset" class="…"&gt;Cancelar&lt;/button&gt;
+  &lt;button type="submit" class="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-semibold"&gt;
+    Publicar pieza
+  &lt;/button&gt;
+&lt;/div&gt;</pre>
+
+    <div class="note">
+      <strong>Accesibilidad de formularios:</strong> una <code class="inline">&lt;label for&gt;</code> por
+      control (nunca placeholder como etiqueta); <code class="inline">autocomplete</code> correcto
+      (<code class="inline">email</code>, <code class="inline">current-password</code>,
+      <code class="inline">one-time-code</code>); ayudas y errores enlazados con
+      <code class="inline">aria-describedby</code>; estado inválido con
+      <code class="inline">aria-invalid</code>; el resumen de errores usa
+      <code class="inline">role="alert"</code> y recibe el foco tras un envío fallido; el botón de envío
+      muestra el progreso y se inhabilita (<code class="inline">aria-busy</code>) para evitar dobles envíos.
+    </div>
+  </section>
+
+  <!-- ================================================================
+       7. FEEDBACK Y ESTADOS
+       ================================================================ -->
+  <section class="section" id="feedback">
+    <h2><span class="num">07</span> Feedback y estados</h2>
+    <p class="section__lead">
+      Cómo comunica la interfaz el resultado de una acción: mensajes, etiquetas de estado, carga,
+      ausencia de datos y confirmaciones.
+    </p>
+
+    <h3>7.1 Mensajes</h3>
+    <div class="demo" style="display:grid;gap:12px">
+      <div class="alert alert--info" role="status">
+        <span aria-hidden="true">ℹ</span>
+        <div><strong>Nuevo en ArtesaNica</strong> Explorá el mapa para encontrar talleres cerca de tu ciudad.</div>
+      </div>
+      <div class="alert alert--success" role="status">
+        <span aria-hidden="true">✓</span>
+        <div><strong>Pieza publicada</strong> Ya es visible en el catálogo y en el mapa de talleres.</div>
+      </div>
+      <div class="alert alert--error" role="alert">
+        <span aria-hidden="true">⚠</span>
+        <div><strong>No se pudo guardar</strong> Revisá tu conexión e intentá de nuevo.</div>
+      </div>
+      <div class="alert alert--warning" role="status">
+        <span aria-hidden="true">◐</span>
+        <div><strong>Stock bajo</strong> Quedan 2 piezas de esta referencia.</div>
+      </div>
+    </div>
+<pre class="code">&lt;div class="flex items-start gap-2.5 p-3 rounded-lg bg-exito/10 text-exito text-sm" role="status"&gt;
+  &lt;Icon name="lucide:check-circle" class="shrink-0" /&gt;
+  &lt;div&gt;&lt;strong&gt;Pieza publicada&lt;/strong&gt; Ya es visible en el catálogo.&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="flex items-start gap-2.5 p-3 rounded-lg bg-error/10 text-error text-sm" role="alert"&gt;
+  &lt;Icon name="lucide:alert-circle" class="shrink-0" /&gt;
+  &lt;div&gt;No se pudo guardar. Revisá tu conexión.&lt;/div&gt;
+&lt;/div&gt;</pre>
+
+    <h3>7.2 Etiquetas (badges y píldoras)</h3>
+    <div class="demo">
+      <div class="badge-row">
+        <span class="badge badge--primary">Cerámica</span>
+        <span class="badge badge--secondary">Ruta artesanal</span>
+        <span class="badge badge--amber">Nuevo</span>
+        <span class="badge badge--soft">Hecho a mano</span>
+        <span class="badge badge--outline">📍 Masaya</span>
+        <span class="badge badge--success">En stock</span>
+        <span class="badge badge--muted">Sin stock</span>
+        <span class="badge badge--rating">★ 4.9</span>
+      </div>
+    </div>
+<pre class="code">&lt;!-- Categoría sobre la imagen --&gt;
+&lt;a class="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
+          text-[10px] font-bold bg-primary text-white shadow-xs hover:bg-primary-dark"&gt;Cerámica&lt;/a&gt;
+
+&lt;!-- Departamento (píldora sobre imagen clara) --&gt;
+&lt;a class="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+          text-[11px] font-bold bg-blanco/95 backdrop-blur-xs text-secondary border border-borde/60"&gt;
+  &lt;Icon name="lucide:map-pin" class="size-3 text-primary" /&gt; Masaya
+&lt;/a&gt;
+
+&lt;!-- Valoración --&gt;
+&lt;span class="text-xs font-bold text-rating"&gt;★ 4.9&lt;/span&gt;</pre>
+
+    <h3>7.3 Carga (skeletons)</h3>
+    <div class="card-grid" style="margin-top:12px">
+      <div class="card card--flat">
+        <div class="skeleton skeleton--media"></div>
+        <div class="card__body">
+          <div class="skeleton skeleton--chip"></div>
+          <div class="skeleton skeleton--title"></div>
+          <div class="skeleton skeleton--text"></div>
+          <div class="skeleton skeleton--text" style="width:45%"></div>
+        </div>
+      </div>
+      <div class="card card--flat" style="padding:18px;gap:10px">
+        <div class="skeleton skeleton--title" style="width:40%"></div>
+        <div class="skeleton skeleton--text"></div>
+        <div class="skeleton skeleton--text" style="width:75%"></div>
+        <div class="skeleton skeleton--text" style="width:55%"></div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:14px">
+      El esqueleto replica la silueta del contenido final (misma altura y número de líneas) para
+      evitar saltos de layout. En el proyecto: <code class="inline">&lt;Skeleton /&gt;</code>
+      (<code class="inline">src/components/ui/skeleton.tsx</code>) y
+      <code class="inline">ProductCardSkeleton.astro</code>.
+    </div>
+
+    <h3>7.4 Estado vacío</h3>
+    <div class="empty-state" style="max-width:460px">
+      <div class="empty-state__icon" aria-hidden="true">🏺</div>
+      <h4>Aún no hay tiendas registradas</h4>
+      <p>Cuando un taller se registre, aparecerá aquí con su ubicación y sus piezas.</p>
+      <button class="btn btn--primary btn--sm" type="button">Registrar mi taller</button>
+    </div>
+<pre class="code">&lt;div class="text-center py-8 px-6 bg-blanco rounded-2xl border border-borde"&gt;
+  &lt;div class="size-13 mx-auto mb-3 rounded-full bg-primary-light text-primary grid place-items-center text-2xl"&gt;🏺&lt;/div&gt;
+  &lt;h3 class="font-bold text-texto"&gt;Aún no hay tiendas registradas&lt;/h3&gt;
+  &lt;p class="text-sm text-texto-secundario mb-3.5"&gt;Cuando un taller se registre, aparecerá aquí.&lt;/p&gt;
+  &lt;a href="/registro" class="inline-flex bg-primary hover:bg-primary-dark text-white px-4 py-2.5 rounded-lg font-semibold"&gt;
+    Registrar mi taller
+  &lt;/a&gt;
+&lt;/div&gt;</pre>
+
+    <h3>7.5 Notificación y confirmación</h3>
+    <div class="demo" style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      <div class="toast">
+        <span aria-hidden="true">✓</span>
+        <div class="toast__body">
+          <span class="toast__title">Agregado al carrito</span>
+          <span class="toast__text">Jarrón de barro vidriado · C$ 450.00</span>
+        </div>
+      </div>
+      <div class="toast toast--error">
+        <span aria-hidden="true">⚠</span>
+        <div class="toast__body">
+          <span class="toast__title">No se pudo publicar</span>
+          <span class="toast__text">Revisá tu conexión e intentá de nuevo.</span>
+        </div>
+      </div>
+      <div class="toast toast--info">
+        <span aria-hidden="true">ℹ</span>
+        <div class="toast__body">
+          <span class="toast__title">Sincronizando catálogo</span>
+          <span class="toast__text">Las piezas nuevas aparecerán en unos segundos.</span>
+        </div>
+      </div>
+      <div class="dialog">
+        <div class="dialog__head">¿Eliminar esta pieza?</div>
+        <div class="dialog__body">La pieza saldrá del catálogo y del mapa. Esta acción no se puede deshacer.</div>
+        <div class="dialog__foot">
+          <button class="btn btn--ghost btn--sm" type="button">Cancelar</button>
+          <button class="btn btn--danger btn--sm" type="button">Eliminar</button>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      <strong>Regla:</strong> el toast informa y desaparece solo (máximo 4&nbsp;s, con
+      <code class="inline">role="status"</code>); los errores permanecen hasta que la persona los cierre
+      (<code class="inline">role="alert"</code>). Toda acción destructiva pasa por un diálogo de
+      confirmación con el verbo explícito en el botón («Eliminar», no «Aceptar»).
+    </div>
+  </section>
+
+  <!-- ================================================================
+       8. MODO OSCURO
+       ================================================================ -->
+  <section class="section" id="oscuro">
+    <h2><span class="num">08</span> Modo oscuro</h2>
+    <p class="section__lead">
+      Ningún componente cambia de estructura: solo cambian los valores de los tokens. Esta sección
+      fuerza el tema oscuro con la clase <code class="inline">.dark</code> sobre el contenedor para
+      revisar el contraste sin depender del sistema operativo.
+    </p>
+
+    <article class="dark dark-section">
+      <span class="eyebrow">Tema oscuro forzado</span>
+      <h3 style="margin:10px 0 16px">Los mismos componentes, tokens oscuros</h3>
+
+      <div class="demo" style="background:var(--color-fondo);border-style:solid">
+        <div class="demo--center" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+          <button class="btn btn--primary" type="button">Comprar ahora</button>
+          <button class="btn btn--secondary" type="button">Explorar mapa</button>
+          <button class="btn btn--outline" type="button">Ver detalles</button>
+          <button class="btn btn--ghost" type="button">Cancelar</button>
+        </div>
+
+        <div class="badge-row" style="margin-top:18px">
+          <span class="badge badge--primary">Cerámica</span>
+          <span class="badge badge--secondary">Ruta artesanal</span>
+          <span class="badge badge--amber">Nuevo</span>
+          <span class="badge badge--outline">📍 Masaya</span>
+          <span class="badge badge--rating">★ 4.9</span>
+        </div>
+
+        <div class="card-grid" style="margin-top:18px">
+          <article class="card card--interactive">
+            <div class="card__media">🏺</div>
+            <div class="card__body">
+              <div class="card__meta">
+                <span>🏪 San Juan de Oriente</span>
+                <span class="badge badge--rating">★ 4.9</span>
+              </div>
+              <h3 class="card__title">Jarrón de barro vidriado</h3>
+              <div class="card__footer">
+                <div>
+                  <span class="card__price-label">Precio</span>
+                  <span class="card__price">C$ 450.00</span>
+                </div>
+                <button class="card__cta" type="button" aria-label="Ver detalle">→</button>
+              </div>
+            </div>
+          </article>
+
+          <div class="stat-card">
+            <div class="stat-card__top">
+              <span class="icon-tile" aria-hidden="true">🛒</span>
+              <span class="badge badge--success">+12&nbsp;%</span>
+            </div>
+            <span class="stat-card__label">Ventas del mes</span>
+            <span class="stat-card__value">C$ 24,850</span>
+          </div>
+        </div>
+
+        <div class="form" style="margin-top:18px;max-width:420px">
+          <div class="field">
+            <label class="field__label" for="d-mail">Correo electrónico</label>
+            <div class="input-wrap">
+              <span class="input-wrap__icon" aria-hidden="true">✉</span>
+              <input class="input" id="d-mail" type="email" placeholder="artesano@artesanica.ni" />
+            </div>
+            <span class="field__hint">Usamos tokens: el campo hereda superficie y borde oscuros.</span>
+          </div>
+          <div class="alert alert--error" role="alert">
+            <span aria-hidden="true">⚠</span>
+            <div><strong>Credenciales incorrectas</strong> Verificá tu correo y contraseña.</div>
+          </div>
+          <div class="alert alert--info" role="status">
+            <span aria-hidden="true">ℹ</span>
+            <div>Las alertas usan el mismo color de estado en ambos temas, ajustado para contraste.</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <div class="note">
+      <strong>Verificación obligatoria:</strong> cada vista se revisa en claro y oscuro antes de
+      cerrar la tarea (toggle <code class="inline">.dark</code> en el header del sitio). Los
+      contrastes de texto se mantienen en 4.5:1 o más en ambos temas; los únicos valores que cambian
+      son los de <code class="inline">src/styles/global.css</code>, jamás los del componente.
+    </div>
+  </section>
+
+  <!-- ================================================================
+       9. GUÍA DE IMPLEMENTACIÓN
+       ================================================================ -->
+  <section class="section" id="implementacion">
+    <h2><span class="num">09</span> Guía de implementación</h2>
+
+    <h3>9.1 Dónde vive cada componente</h3>
+    <div class="table-wrap">
+      <table class="tokens">
+        <thead>
+          <tr><th>Componente</th><th>Archivo en el proyecto</th><th>Notas</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Tokens y tema</td><td><code>src/styles/global.css</code></td><td><code>@theme</code> (Tailwind v4) + <code>.dark</code> + <code>@custom-variant dark</code></td></tr>
+          <tr><td>Guía de color y tipografía</td><td><code>DESIGN.md</code></td><td>Matriz de tokens, contraste WCAG y reglas de mantenibilidad</td></tr>
+          <tr><td>Botón</td><td><code>src/components/ui/button.tsx</code></td><td>Variantes <code>default</code>, <code>secondary</code>, <code>outline</code>, <code>ghost</code>, <code>link</code> y tamaños <code>xs</code>–<code>lg</code>/<code>icon</code></td></tr>
+          <tr><td>Encabezado y navegación</td><td><code>src/components/Header.astro</code>, <code>src/components/header/*</code></td><td>Barras de escritorio y móvil, menú de sesión, selector de idioma, drawer móvil</td></tr>
+          <tr><td>Tarjeta de producto</td><td><code>src/components/pages/ProductsListContent.astro</code></td><td>Media, badges de categoría y departamento, valoración y precio</td></tr>
+          <tr><td>Esqueleto de tarjeta</td><td><code>src/components/ui/ProductCardSkeleton.astro</code>, <code>src/components/ui/skeleton.tsx</code></td><td>Estados de carga del catálogo</td></tr>
+          <tr><td>Tarjeta de métrica</td><td><code>src/components/profile/sections/DashboardSection.tsx</code></td><td>Panel de indicadores del artesano</td></tr>
+          <tr><td>Campo de formulario</td><td><code>src/components/profile/shared/Field.tsx</code></td><td>Etiqueta + control + ayuda + error</td></tr>
+          <tr><td>Formularios de autenticación</td><td><code>src/components/pages/LoginContent.astro</code>, <code>RegisterContent.astro</code></td><td>Login en dos pasos (2FA), errores y estados de envío</td></tr>
+          <tr><td>Selectores</td><td><code>src/components/catalog/DepartmentSelect.tsx</code>, <code>SortSelect.tsx</code>, <code>src/components/ui/select.tsx</code></td><td>Filtros del catálogo y selects base</td></tr>
+          <tr><td>Diálogo y drawer</td><td><code>src/components/ui/dialog.tsx</code>, <code>src/components/profile/shared/Drawer.tsx</code></td><td>Confirmaciones y paneles laterales</td></tr>
+          <tr><td>Notificaciones</td><td><code>src/components/ui/ToastContainer.tsx</code></td><td>Avisos flotantes de resultado</td></tr>
+          <tr><td>Sección de perfil</td><td><code>src/components/profile/shared/Section.tsx</code></td><td>Contenedor BEM de secciones del perfil</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>9.2 Checklist antes de dar por terminado un componente</h3>
+    <div class="panel">
+      <ol class="rule-list">
+        <li>Usa solo tokens semánticos (sin colores ni tamaños hardcodeados).</li>
+        <li>Define <em>hover</em>, <em>focus-visible</em>, <em>disabled</em> y, si aplica, <em>loading</em> y <em>error</em>.</li>
+        <li>Se ve correcto en claro y oscuro (y en móvil: 360&nbsp;px de ancho mínimo).</li>
+        <li>Áreas táctiles de 40–44&nbsp;px y contraste ≥ 4.5:1 en textos.</li>
+        <li>Etiquetas y estados expuestos con <code class="inline">aria-*</code>; iconos decorativos con <code class="inline">aria-hidden</code>.</li>
+        <li>Comportamiento consistente con un componente equivalente ya existente (no duplicar).</li>
+        <li>Textos en los tres idiomas del proyecto (ES/EN/MIQ) desde el diccionario, sin cadenas sueltas.</li>
+      </ol>
+    </div>
+
+    <h3>9.3 Reglas de mantenibilidad</h3>
+    <div class="panel">
+      <ol class="rule-list">
+        <li>Prohibido usar clases de color no registradas (<code class="inline">bg-emerald-500</code>, <code class="inline">bg-white</code>, <code class="inline">text-gray-900</code>) salvo estados universales de éxito/error.</li>
+        <li>Preferir siempre <code class="inline">bg-primary</code>, <code class="inline">bg-secondary</code>, <code class="inline">text-accent-amber</code>, <code class="inline">bg-blanco</code>, <code class="inline">bg-fondo</code>, <code class="inline">text-texto</code>, <code class="inline">text-texto-secundario</code>, <code class="inline">border-borde</code>.</li>
+        <li>Si hace falta un valor nuevo, se añade como token en <code class="inline">src/styles/global.css</code> (claro y oscuro) y se documenta en <code class="inline">DESIGN.md</code>.</li>
+        <li>Reutilizar antes de crear: revisar esta biblioteca y los componentes existentes.</li>
+        <li>Validación visual continua: alternar el tema en cada vista afectada (<code class="inline">astro dev</code>).</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer class="doc-foot">
+    <span>ArtesaNica · Sistema de Componentes de UI · documento HTML + CSS autocontenido</span>
+    <span>Coherente con <code class="inline">DESIGN.md</code> y <code class="inline">src/styles/global.css</code></span>
+  </footer>
+</div>
+</body>
+</html>

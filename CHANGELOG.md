@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.22](https://github.com/FlasheyEstudi/DevHorizon/compare/artesa-nica-v0.1.21...artesa-nica-v0.1.22) (2026-10-09)
+
+
+### Features
+
+* **auth:** verificación en dos pasos (TOTP RFC 6238) ([d9866de](https://github.com/FlasheyEstudi/DevHorizon/commit/d9866dec174203d465c235192997e9cc42ba9d26))
+* despliegue en Azure, seguridad, rendimiento y documentos ([7ac755f](https://github.com/FlasheyEstudi/DevHorizon/commit/7ac755f2eb178a2a9ed1f34d938a75d45f0afb29))
+* **infra:** despliegue autoalojado con nginx y contenedores ([e8c5045](https://github.com/FlasheyEstudi/DevHorizon/commit/e8c5045f8cb6652378b0a2c2517267a786706e5d))
+* panel de super admin para categorias y noticias ([491881a](https://github.com/FlasheyEstudi/DevHorizon/commit/491881ac14d3b62b16b0c2e9628aa26b3bcbf2f9))
+
+
+### Bug Fixes
+
+* **catalog:** lectura defensiva de tiendas para no romper el SSR ([90da839](https://github.com/FlasheyEstudi/DevHorizon/commit/90da839f30292e8f2b72181bb91f5f27d8777488))
+
 ## [0.1.21](https://github.com/moises717/Artesa_Nica/compare/artesa-nica-v0.1.20...artesa-nica-v0.1.21) (2026-10-07)
 
 

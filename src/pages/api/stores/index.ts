@@ -58,6 +58,8 @@ const CreateBodySchema = z
     name: z.string().min(2).max(200),
     slug: z.string().min(2).max(120).regex(SLUG_PATTERN),
     description: z.string().max(2000).optional().default(''),
+    cedula: z.string().max(50).optional().default(''),
+    rut: z.string().max(50).optional().default(''),
     category: z.enum(STORE_CATEGORIES),
     department: z.enum(DEPARTMENTS),
     address_text: z.string().max(500).optional().default(''),
@@ -186,7 +188,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   // 8. Crear tienda.
   try {
-    const store = await pb.collection('stores').create({
+    const storePayload: Record<string, unknown> = {
       name: parsed.data.name,
       slug: parsed.data.slug,
       description: parsed.data.description,
@@ -195,7 +197,24 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       address_text: parsed.data.address_text,
       location: parsed.data.location ?? undefined,
       owner: authRecord.id,
-    });
+    };
+    if (parsed.data.cedula) storePayload.cedula = parsed.data.cedula;
+    if (parsed.data.rut) storePayload.rut = parsed.data.rut;
+
+    let store;
+    try {
+      store = await pb.collection('stores').create(storePayload);
+    } catch (createErr: unknown) {
+      const pbErr = createErr as { data?: { data?: Record<string, unknown> } };
+      const fieldErrors = pbErr?.data?.data ?? {};
+      if (fieldErrors.cedula || fieldErrors.rut) {
+        delete storePayload.cedula;
+        delete storePayload.rut;
+        store = await pb.collection('stores').create(storePayload);
+      } else {
+        throw createErr;
+      }
+    }
     return jsonResponse({ store, promoted }, 201);
   } catch (err: unknown) {
     // Si la creación de la tienda falló y el usuario había sido promovido,

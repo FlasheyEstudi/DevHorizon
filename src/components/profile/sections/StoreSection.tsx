@@ -62,6 +62,8 @@ interface StoreRecord {
   category: string;
   department: string;
   address_text: string;
+  cedula?: string;
+  rut?: string;
   location: { lat: number; lon: number } | null;
 }
 
@@ -133,6 +135,8 @@ export default function StoreSection({
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [slugDirty, setSlugDirty] = useState(false);
+  const [cedula, setCedula] = useState('');
+  const [rut, setRut] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string>('ceramica');
   const [department, setDepartment] = useState<string>('Managua');
@@ -199,6 +203,8 @@ export default function StoreSection({
           name,
           slug,
           description,
+          cedula,
+          rut,
           category,
           department,
           address_text: addressText,
@@ -288,6 +294,12 @@ export default function StoreSection({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <InfoRow label={t('profile.store.fields.name')} value={store.name} />
             <InfoRow label={t('profile.store.fields.slug')} value={store.slug} mono />
+            {store.cedula && (
+              <InfoRow label={t('profile.store.fields.cedula')} value={store.cedula} mono />
+            )}
+            {store.rut && (
+              <InfoRow label={t('profile.store.fields.rut')} value={store.rut} mono />
+            )}
             <InfoRow
               label={t('profile.store.fields.category')}
               value={store.category}
@@ -394,6 +406,26 @@ export default function StoreSection({
                   required
                   error={slugError ?? undefined}
                 />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field
+                    label={t('profile.store.fields.cedula')}
+                    value={cedula}
+                    onChange={(e) => setCedula(e.target.value)}
+                    placeholder={t('profile.store.fields.cedulaPlaceholder')}
+                    required
+                    maxLength={30}
+                  />
+
+                  <Field
+                    label={t('profile.store.fields.rut')}
+                    value={rut}
+                    onChange={(e) => setRut(e.target.value)}
+                    placeholder={t('profile.store.fields.rutPlaceholder')}
+                    required
+                    maxLength={30}
+                  />
+                </div>
 
                 <TextareaField
                   label={t('profile.store.fields.description')}
@@ -526,6 +558,26 @@ export default function StoreSection({
           required
           error={slugError ?? undefined}
         />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field
+            label={t('profile.store.fields.cedula')}
+            value={cedula}
+            onChange={(e) => setCedula(e.target.value)}
+            placeholder={t('profile.store.fields.cedulaPlaceholder')}
+            required
+            maxLength={30}
+          />
+
+          <Field
+            label={t('profile.store.fields.rut')}
+            value={rut}
+            onChange={(e) => setRut(e.target.value)}
+            placeholder={t('profile.store.fields.rutPlaceholder')}
+            required
+            maxLength={30}
+          />
+        </div>
 
         <TextareaField
           label={t('profile.store.fields.description')}
